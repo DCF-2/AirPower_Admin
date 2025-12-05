@@ -5,52 +5,35 @@ package com.ifpe.edu.br.view.ui.screens
 * Author: Willian Santos
 * Project: AirPower Costumer
 */
-import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.ifpe.edu.br.common.CommonConstants
-import com.ifpe.edu.br.common.components.CustomBarChart
-import com.ifpe.edu.br.common.components.CustomCard
 import com.ifpe.edu.br.common.components.CustomColumn
-import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.RectButton
-import com.ifpe.edu.br.common.contracts.UIState
-import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
-import com.ifpe.edu.br.model.Constants
-import com.ifpe.edu.br.model.repository.model.TelemetryDataWrapper
+import com.ifpe.edu.br.common.ui.theme.White
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
-import com.ifpe.edu.br.model.repository.remote.dto.AllMetricsWrapper
+import com.ifpe.edu.br.model.repository.remote.dto.agg.AggStrategy
+import com.ifpe.edu.br.model.repository.remote.dto.agg.AggregationRequest
+import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
+import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
+import com.ifpe.edu.br.model.util.AirPowerLog
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.AuthActivity
-import com.ifpe.edu.br.view.ui.components.LoadingCard
-import com.ifpe.edu.br.view.ui.theme.app_default_solid_background_light
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 
@@ -59,36 +42,54 @@ fun DashBoardsScreen(
     navController: NavHostController,
     mainViewModel: AirPowerViewModel
 ) {
-    val fetchMetricsKey = Constants.UIStateKey.METRICS_KEY
-    val fetchMetricsState = mainViewModel.uiStateManager.observeUIState(fetchMetricsKey)
-        .collectAsState(initial = UIState(Constants.UIState.STATE_LOADING))
-
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val dashBoardsDataWrapper = mainViewModel.getUserDashBoardsDataWrapper().collectAsState()
-    val alarmInfo = mainViewModel.getAlarmInfoSet().collectAsState()
+    val userDashboards by
+    mainViewModel.getDashboardsForCurrentUser().collectAsState(initial = emptyList())
+    val allAlarms  =  mainViewModel.getAlarmInfoSet().collectAsState()
 
     LaunchedEffect(Unit) {
-        mainViewModel.fetchAllDashboardsMetricsWrapper()
+        mainViewModel.fetchDashboards()
     }
 
     CustomColumn(
         modifier = Modifier
             .verticalScroll(scrollState)
             .fillMaxSize(),
-        alignmentStrategy = CommonConstants.Ui.ALIGNMENT_CENTER,
+        alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
         layouts = listOf {
-            if (fetchMetricsState.value.state == Constants.UIState.STATE_LOADING) {
-                LoadingCard()
-            } else {
-                dashBoardsDataWrapper.value.forEach { dashBoardsDataWrapper ->
-                    DashboardsCardBoard(
-                        allMetricsWrapper = dashBoardsDataWrapper,
-                        alarmInfo = alarmInfo.value
+            if (!userDashboards.isEmpty()) {
+                AirPowerLog.e("WILLIAM", "userDashboards => " + userDashboards)
+                userDashboards.forEach { dashboard ->
+                    val request = AggregationRequest(
+                        devicesIds = dashboard.devicesIds,
+                        aggStrategy = AggStrategy.AVG,
+                        aggKey = TelemetryKey.POWER,
+                        timeIntervalWrapper = getTimeWrapper(
+                            System.currentTimeMillis(),
+                            TimeInterval.DAY
+                        )
+                    )
+                    val aggregatedDataState by mainViewModel.getAggregatedDataState(request)
+                        .collectAsState()
+                    LaunchedEffect(dashboard.id) {
+                        mainViewModel.fetchAggregatedData(request)
+                    }
+                    AirPowerLog.d("FilterDebug", "alarms dashboardScreen: ${allAlarms.value}")
+                    val filterAlarmsByDeviceIds =
+                        filterAlarmsByDeviceIds(allAlarms.value, dashboard.devicesIds)
+                    DevicesConsumptionSummaryCardBoard(
+                        aggregationState = aggregatedDataState,
+                        alarmInfo = filterAlarmsByDeviceIds,
+                        cardLabel = dashboard.title
+                    )
+                    AirPowerLog.d(
+                        "DashboardsScreen",
+                        "Alarmes para o dashboard '${dashboard.title}': $filterAlarmsByDeviceIds"
                     )
                 }
             }
-
+            Spacer(modifier = Modifier.padding(vertical = 6.dp))
             RectButton(
                 text = "Logout",
                 onClick = {
@@ -100,168 +101,48 @@ fun DashBoardsScreen(
                     navController.popBackStack()
                     (context as? ComponentActivity)?.finish()
                 },
-                fontSize = 20.sp
-            )
-        }
-    )
-}
-
-@Composable
-private fun DashboardsCardBoard(
-    allMetricsWrapper: AllMetricsWrapper,
-    alarmInfo: List<AlarmInfo>
-) {
-
-    val context = LocalContext.current
-
-    CustomCard(
-        paddingStart = 15.dp,
-        paddingEnd = 15.dp,
-        paddingTop = 5.dp,
-        paddingBottom = 5.dp,
-        layouts = listOf {
-            CustomColumn(
-                modifier = Modifier.fillMaxSize(),
-                layouts = listOf {
-
-                    Spacer(modifier = Modifier.padding(vertical = 4.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        CustomText(
-                            color = tb_primary_light,
-                            text = allMetricsWrapper.label,
-                            fontSize = 20.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.padding(vertical = 6.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CustomColumn(
-                            modifier = Modifier.width(110.dp),
-                            layouts = listOf {
-                                Spacer(modifier = Modifier.padding(vertical = 10.dp))
-                                SummaryCard("alarmes", alarmInfo.size.toString(), onClick = {})
-                                Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                                SummaryCard(
-                                    "Consumo Anual",
-                                    allMetricsWrapper.totalConsumption,
-                                    onClick = {})
-                                Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                                SummaryCard(
-                                    "Dispositivos",
-                                    allMetricsWrapper.devicesCount.toString(),
-                                    onClick = {})
-                            })
-
-                        Spacer(modifier = Modifier.padding(horizontal = 10.dp))
-                        CustomColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            layouts = listOf {
-                                Spacer(modifier = Modifier.padding(vertical = 12.dp))
-                                CustomBarChart(
-                                    height = 300.dp,
-                                    dataWrapper = TelemetryDataWrapper(
-                                        allMetricsWrapper.label,
-                                        allMetricsWrapper.deviceConsumptionSet
-                                    )
-                                )
-                                Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                            })
-                    }
-                }
-            )
-
-            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                CustomText(
-                    modifier = Modifier.clickable {
-                        Toast.makeText(
-                            context,
-                            "Essa funcionalidade está em desenvolvimento",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    color = tb_primary_light,
-                    text = "Detalhes",
-                    fontSize = 12.sp
+                fontSize = 20.sp,
+                colors = ButtonColors(
+                    contentColor = White,
+                    containerColor = tb_secondary_light,
+                    disabledContentColor = Color.Gray,
+                    disabledContainerColor = Color.Gray
                 )
-            }
+            )
+            Spacer(modifier = Modifier.padding(vertical = 6.dp))
         }
     )
 }
 
-@Composable
-private fun SummaryCard(
-    label: String,
-    data: String,
-    onClick: () -> Unit,
-    backgroundColor: Color = app_default_solid_background_light,
-    textColor: Color = tb_primary_light,
-    fontWeight: FontWeight = FontWeight.Light
-) {
-    CustomCard(
-        modifier = Modifier
-            .clip(RoundedCornerShape(cardCornerRadius))
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .background(backgroundColor)
-            .clickable { onClick() },
-        layouts = listOf {
-            CustomColumn(
-                modifier = Modifier.fillMaxSize(),
-                layouts = listOf {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CustomColumn(
-                            modifier = Modifier.wrapContentSize(),
-                            layouts = listOf {
-                                CustomText(
-                                    text = label,
-                                    alignment = TextAlign.Center,
-                                    fontWeight = fontWeight,
-                                    fontSize = 12.sp,
-                                    color = textColor,
-                                    modifier = Modifier.wrapContentWidth()
-                                )
-                            }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CustomColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            layouts = listOf {
-                                CustomText(
-                                    text = data,
-                                    alignment = TextAlign.Center,
-                                    fontWeight = fontWeight,
-                                    fontSize = 12.sp,
-                                    color = tb_secondary_light,
-                                    modifier = Modifier
-                                        .wrapContentWidth()
-                                        .padding(all = 0.dp)
-                                )
-                            }
-                        )
-                    }
+/**
+ * Filtra uma lista de alarmes para retornar apenas aqueles associados a uma lista específica de IDs de dispositivos.
+ *
+ * @param alarms A lista completa de `AlarmInfo` a ser filtrada.
+ * @param deviceIds Uma lista de `String` contendo os IDs dos dispositivos de interesse.
+ * @return Uma nova lista de `AlarmInfo` contendo apenas os alarmes que correspondem aos `deviceIds` fornecidos.
+ */
+fun filterAlarmsByDeviceIds(alarms: List<AlarmInfo>, deviceIds: List<String>): List<AlarmInfo> {
+    val deviceIdsSet = deviceIds.toSet()
+    AirPowerLog.d("FilterDebug", "alarms: $alarms")
 
-                }
+    alarms.forEach { alarm ->
+        val alarmDeviceId = alarm.originator?.id?.toString()
+        AirPowerLog.d("FilterDebug", "alarmDeviceId: " + alarmDeviceId)
+    }
+
+    return alarms.filter { alarm ->
+        val alarmDeviceId = alarm.originator?.id?.toString()
+
+        if (alarmDeviceId == null) {
+            AirPowerLog.d("FilterDebug", "Alarme sem originatorId válido, descartando...")
+            false
+        } else {
+            val matches = deviceIdsSet.contains(alarmDeviceId)
+            AirPowerLog.d(
+                "FilterDebug",
+                "Verificando alarme do device: $alarmDeviceId. Corresponde? $matches"
             )
+            matches
         }
-    )
+    }
 }

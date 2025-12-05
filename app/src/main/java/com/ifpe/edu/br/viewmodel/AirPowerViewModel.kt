@@ -9,6 +9,7 @@ import com.ifpe.edu.br.model.repository.Repository
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
 import com.ifpe.edu.br.model.repository.remote.dto.AllMetricsWrapper
+import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceSummary
 import com.ifpe.edu.br.model.repository.remote.dto.Id
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggDataWrapperResponse
@@ -46,6 +47,7 @@ class AirPowerViewModel(
     private val CACHE_CLEANUP_INTERVAL = MINUTE * 2
     private val FETCH_INTERVAL_DEVICE = MINUTE * 5
     private val FETCH_INTERVAL_NOTIFICATION = 30 * 1000L
+    private val FETCH_INTERVAL_AUTO_UPDATE = 2 * MINUTE
     private val FETCH_INTERVAL_ALARM = MINUTE
     private val MIN_DELAY_UI = 1500L
     private val MIN_DELAY_CARD = 800L
@@ -275,6 +277,36 @@ class AirPowerViewModel(
         }
         if (jobs[NOTIFICATIONS_JOB]?.isActive != true) {
             jobs[NOTIFICATIONS_JOB] = fetchNotificationData()
+        }
+    }
+
+    fun getDashboardsForCurrentUser(): StateFlow<List<DashboardInfo>> {
+        return repository.getDashBoards()
+    }
+
+    fun fetchDashboards(): Job {
+        return viewModelScope.launch {
+            val uiStateKey = Constants.UIStateKey.DASHBOARDS_KEY
+            while (isActive) {
+                when (val resultWrapper = repository.retrieveDashBoardsForCurrentUser()) {
+                    is ResultWrapper.ApiError -> {
+                        handleApiError(
+                            resultWrapper.errorCode,
+                            uiStateKey
+                        )
+                    }
+
+                    ResultWrapper.Empty -> {}
+                    ResultWrapper.NetworkError -> {
+                        handleNetworkError(uiStateKey)
+                    }
+
+                    is ResultWrapper.Success<List<DashboardInfo>> -> {
+                        handleSuccess(uiStateKey)
+                    }
+                }
+                delay(FETCH_INTERVAL_AUTO_UPDATE)
+            }
         }
     }
 

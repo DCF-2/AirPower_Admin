@@ -110,7 +110,8 @@ fun HomeScreen(
         layouts = listOf {
             DevicesConsumptionSummaryCardBoard(
                 aggregationState = aggregationState.value,
-                alarmInfo = alarmInfo.value
+                alarmInfo = alarmInfo.value,
+                cardLabel = "Consumo de todos os dispositivos"
             )
             AlarmsSummaryCardCardBoard(
                 alarmInfo.value
@@ -236,7 +237,8 @@ private fun AlarmsSummaryCardCardBoard(
 @Composable
 fun DevicesConsumptionSummaryCardBoard(
     aggregationState: ResultWrapper<AggDataWrapperResponse>,
-    alarmInfo: List<AlarmInfo>
+    alarmInfo: List<AlarmInfo>,
+    cardLabel: String = ""
 ) {
     val context = LocalContext.current
     val totalAlarmCount = alarmInfo.size ?: 0
@@ -249,40 +251,47 @@ fun DevicesConsumptionSummaryCardBoard(
             CustomColumn(
                 modifier = Modifier.fillMaxSize(),
                 layouts = listOf {
-                    Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        CustomText(
-                            color = tb_primary_light,
-                            text = "Consumo de todos os dispositivos",
-                            fontSize = 20.sp
-                        )
-                    }
-
-                    if (aggregationState is ResultWrapper.Success) {
-                        ConsumptionSummaryCard(totalAlarmCount, aggregationState.value)
-                        Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            CustomText(
-                                modifier = Modifier.clickable {
-                                    Toast.makeText(
-                                        context,
-                                        "Essa funcionalidade está em desenvolvimento",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                color = tb_primary_light,
-                                text = "Detalhes",
-                                fontSize = 12.sp
-                            )
+                    when (aggregationState) {
+                        is ResultWrapper.Success -> {
+                            Spacer(modifier = Modifier.padding(vertical = 4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Start
+                            ) {
+                                CustomText(
+                                    color = tb_primary_light,
+                                    text = cardLabel,
+                                    fontSize = 20.sp
+                                )
+                            }
+                            ConsumptionSummaryCard(totalAlarmCount, aggregationState.value)
+                            Spacer(modifier = Modifier.padding(vertical = 4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                CustomText(
+                                    modifier = Modifier.clickable {
+                                        Toast.makeText(
+                                            context,
+                                            "Essa funcionalidade está em desenvolvimento",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    color = tb_primary_light,
+                                    text = "Detalhes",
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
-                    } else {
-                        EmptyStateCard()
+
+                        is ResultWrapper.Empty -> {
+                            LoadingCard()
+                        }
+
+                        else -> {
+                            EmptyStateCard()
+                        }
                     }
                 }
             )
