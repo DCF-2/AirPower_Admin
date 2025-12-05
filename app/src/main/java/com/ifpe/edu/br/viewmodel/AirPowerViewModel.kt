@@ -61,6 +61,7 @@ class AirPowerViewModel(
     private val DEVICE_JOB = "DEVICE_JOB"
     private val ALARMS_JOB = "ALARMS_JOB"
     private val NOTIFICATIONS_JOB = "NOTIFICATIONS_JOB"
+    private val DASHBOARDS_JOB = "DASHBOARDS_JOB"
 
     init {
         startCacheCleanupJob()
@@ -278,13 +279,16 @@ class AirPowerViewModel(
         if (jobs[NOTIFICATIONS_JOB]?.isActive != true) {
             jobs[NOTIFICATIONS_JOB] = fetchNotificationData()
         }
+        if (jobs[DASHBOARDS_JOB]?.isActive != true) {
+            jobs[DASHBOARDS_JOB] = fetchDashboards()
+        }
     }
 
     fun getDashboardsForCurrentUser(): StateFlow<List<DashboardInfo>> {
         return repository.getDashBoards()
     }
 
-    fun fetchDashboards(): Job {
+    private fun fetchDashboards(): Job {
         return viewModelScope.launch {
             val uiStateKey = Constants.UIStateKey.DASHBOARDS_KEY
             while (isActive) {

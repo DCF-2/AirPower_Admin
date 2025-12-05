@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,13 +27,14 @@ import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.common.ui.theme.White
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
+import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggStrategy
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggregationRequest
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
-import com.ifpe.edu.br.model.util.AirPowerLog
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.AuthActivity
+import com.ifpe.edu.br.view.ui.components.EmptyStateCard
 import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 
@@ -46,11 +47,7 @@ fun DashBoardsScreen(
     val context = LocalContext.current
     val userDashboards by
     mainViewModel.getDashboardsForCurrentUser().collectAsState(initial = emptyList())
-    val allAlarms  =  mainViewModel.getAlarmInfoSet().collectAsState()
-
-    LaunchedEffect(Unit) {
-        mainViewModel.fetchDashboards()
-    }
+    val allAlarms = mainViewModel.getAlarmInfoSet().collectAsState()
 
     CustomColumn(
         modifier = Modifier
@@ -58,34 +55,14 @@ fun DashBoardsScreen(
             .fillMaxSize(),
         alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
         layouts = listOf {
-            if (!userDashboards.isEmpty()) {
-                AirPowerLog.e("WILLIAM", "userDashboards => " + userDashboards)
+            if (userDashboards.isEmpty()) {
+                EmptyStateCard()
+            } else {
                 userDashboards.forEach { dashboard ->
-                    val request = AggregationRequest(
-                        devicesIds = dashboard.devicesIds,
-                        aggStrategy = AggStrategy.AVG,
-                        aggKey = TelemetryKey.POWER,
-                        timeIntervalWrapper = getTimeWrapper(
-                            System.currentTimeMillis(),
-                            TimeInterval.DAY
-                        )
-                    )
-                    val aggregatedDataState by mainViewModel.getAggregatedDataState(request)
-                        .collectAsState()
-                    LaunchedEffect(dashboard.id) {
-                        mainViewModel.fetchAggregatedData(request)
-                    }
-                    AirPowerLog.d("FilterDebug", "alarms dashboardScreen: ${allAlarms.value}")
-                    val filterAlarmsByDeviceIds =
-                        filterAlarmsByDeviceIds(allAlarms.value, dashboard.devicesIds)
-                    DevicesConsumptionSummaryCardBoard(
-                        aggregationState = aggregatedDataState,
-                        alarmInfo = filterAlarmsByDeviceIds,
-                        cardLabel = dashboard.title
-                    )
-                    AirPowerLog.d(
-                        "DashboardsScreen",
-                        "Alarmes para o dashboard '${dashboard.title}': $filterAlarmsByDeviceIds"
+                    DashboardItem(
+                        dashboard = dashboard,
+                        mainViewModel = mainViewModel,
+                        allAlarms = allAlarms.value
                     )
                 }
             }
@@ -102,7 +79,7 @@ fun DashBoardsScreen(
                     (context as? ComponentActivity)?.finish()
                 },
                 fontSize = 20.sp,
-                colors = ButtonColors(
+                colors = ButtonDefaults.buttonColors(
                     contentColor = White,
                     containerColor = tb_secondary_light,
                     disabledContentColor = Color.Gray,
@@ -114,35 +91,51 @@ fun DashBoardsScreen(
     )
 }
 
+@Composable
+private fun DashboardItem(
+    dashboard: DashboardInfo,
+    mainViewModel: AirPowerViewModel,
+    allAlarms: List<AlarmInfo>
+) {
+    val request = AggregationRequest(
+        devicesIds = dashboard.devicesIds,
+        aggStrategy = AggStrategy.AVG,
+        aggKey = TelemetryKey.POWER,
+        timeIntervalWrapper = getTimeWrapper(
+            System.currentTimeMillis(),
+            TimeInterval.MONTH
+        )
+    )
+    val aggregatedDataState by mainViewModel.getAggregatedDataState(request).collectAsState()
+    LaunchedEffect(dashboard.id) {
+        mainViewModel.fetchAggregatedData(request)
+    }
+    val filterAlarmsByDeviceIds =
+        filterAlarmsByDeviceIds(allAlarms, dashboard.devicesIds)
+    DevicesConsumptionSummaryCardBoard(
+        aggregationState = aggregatedDataState,
+        alarmInfo = filterAlarmsByDeviceIds,
+        cardLabel = dashboard.title
+    )
+}
+
 /**
- * Filtra uma lista de alarmes para retornar apenas aqueles associados a uma lista específica de IDs de dispositivos.
+ * Filtra uma lista de objetos [AlarmInfo] para retornar apenas aqueles associados a um conjunto específico de IDs de dispositivos.
  *
- * @param alarms A lista completa de `AlarmInfo` a ser filtrada.
- * @param deviceIds Uma lista de `String` contendo os IDs dos dispositivos de interesse.
- * @return Uma nova lista de `AlarmInfo` contendo apenas os alarmes que correspondem aos `deviceIds` fornecidos.
+ * Este método é "null-safe" e ignora com segurança quaisquer alarmes na lista de entrada
+ * que tenham um `originator` ou `originator.id` nulos, prevenindo `NullPointerException`.
+ * Ele utiliza um `Set` para os IDs de dispositivos fornecidos para garantir uma verificação de contenção eficiente (complexidade O(1) em média).
+ *
+ * @param alarms A lista completa de [AlarmInfo] a ser filtrada. Pode conter alarmes com dados nulos.
+ * @param deviceIds Uma lista de [String] contendo os IDs dos dispositivos a serem usados como critério de filtro.
+ * @return Uma nova [List] de [AlarmInfo] contendo apenas os alarmes cujo ID do originador
+ *         corresponde a um dos IDs na lista `deviceIds`. Retorna uma lista vazia se não houver correspondências.
  */
 fun filterAlarmsByDeviceIds(alarms: List<AlarmInfo>, deviceIds: List<String>): List<AlarmInfo> {
     val deviceIdsSet = deviceIds.toSet()
-    AirPowerLog.d("FilterDebug", "alarms: $alarms")
-
-    alarms.forEach { alarm ->
-        val alarmDeviceId = alarm.originator?.id?.toString()
-        AirPowerLog.d("FilterDebug", "alarmDeviceId: " + alarmDeviceId)
-    }
-
     return alarms.filter { alarm ->
-        val alarmDeviceId = alarm.originator?.id?.toString()
-
-        if (alarmDeviceId == null) {
-            AirPowerLog.d("FilterDebug", "Alarme sem originatorId válido, descartando...")
-            false
-        } else {
-            val matches = deviceIdsSet.contains(alarmDeviceId)
-            AirPowerLog.d(
-                "FilterDebug",
-                "Verificando alarme do device: $alarmDeviceId. Corresponde? $matches"
-            )
-            matches
-        }
+        alarm.originator?.id?.toString()?.let { deviceId ->
+            deviceIdsSet.contains(deviceId)
+        } ?: false
     }
 }

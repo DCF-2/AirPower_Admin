@@ -128,7 +128,6 @@ class AirPowerServerManager(connection: Retrofit) {
         return safeApiCall { apiService.getDashBoardsForUser(userId) }
     }
 
-    @Deprecated("Never tested")
     suspend fun getDeviceIdsFromDashboard(dashboardId: String): ResultWrapper<List<String>> {
         if (AirPowerLog.ISVERBOSE) AirPowerLog.d(TAG, "getDeviceIdsFromDashboard()")
         return safeApiCall { apiService.getDeviceIdsFromDashboards(dashboardId) }

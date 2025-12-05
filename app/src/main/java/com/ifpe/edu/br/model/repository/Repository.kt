@@ -397,12 +397,7 @@ class Repository private constructor(context: Context) {
     suspend fun retrieveDashBoardsForCurrentUser(): ResultWrapper<List<DashboardInfo>> {
         if (AirPowerLog.ISLOGABLE)
             AirPowerLog.d(TAG, "retrieveDashBoardsForCurrentUser()")
-        val storedUserSet = userDao.findAll()
-        val storedUser: AirPowerUser? = if (storedUserSet.isNotEmpty()) {
-            storedUserSet[0]
-        } else {
-            null
-        }
+        val storedUser = getCurrentUser()
         if (storedUser == null) {
             return ResultWrapper.NetworkError
         }
@@ -420,5 +415,4 @@ class Repository private constructor(context: Context) {
         val resultWrapper = airPowerServerMgr.getDeviceIdsFromDashboard(dashboardId)
         return resultWrapper
     }
-
 }
