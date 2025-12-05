@@ -54,6 +54,7 @@ fun NotificationCard(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(all = 0.dp),
                     horizontalArrangement = Arrangement.Start
@@ -63,7 +64,7 @@ fun NotificationCard(
                         alignment = TextAlign.Left,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
-                        text = "assunto:"
+                        text = "Assunto:"
                     )
                 }
                 Row(

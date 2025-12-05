@@ -32,6 +32,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.error.ErrorCode
 import com.ifpe.edu.br.model.repository.remote.dto.user.ThingsBoardUser
 import com.ifpe.edu.br.model.util.AirPowerLog
 import com.ifpe.edu.br.model.util.ResultWrapper
+import com.ifpe.edu.br.view.manager.NotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +47,7 @@ class Repository private constructor(context: Context) {
     private val airPowerServerConnection =
         ConnectionManager.getInstance().getConnectionById(AirPowerServerConnectionContractImpl)
     private val airPowerServerMgr = AirPowerServerManager(airPowerServerConnection)
+    private val notificationHelper = NotificationHelper(context)
 
     private val _devicesSummary = MutableStateFlow<List<DeviceSummary>>(emptyList())
     val devicesSummary: StateFlow<List<DeviceSummary>> get() = _devicesSummary
@@ -368,6 +370,15 @@ class Repository private constructor(context: Context) {
                     TAG,
                     "Updating notifications data with ${resultWrapper.value.size} items."
                 )
+            val oldNotifications = getNotifications().value
+            val newNotifications = resultWrapper.value
+            if (oldNotifications.isNotEmpty() && newNotifications.size > oldNotifications.size) {
+                val notificationsToPost =
+                    newNotifications.filter { it !in oldNotifications }
+                notificationsToPost.forEach { notificationItem ->
+                    notificationHelper.showNotification(notificationItem)
+                }
+            }
             _notification.value = resultWrapper.value
         }
         return resultWrapper
@@ -410,9 +421,18 @@ class Repository private constructor(context: Context) {
         return resultWrapper
     }
 
+    @Deprecated("Marked to be removed")
     suspend fun getDeviceIdsFromDashboards(dashboardId: String): ResultWrapper<List<String>> {
         if (AirPowerLog.ISLOGABLE) AirPowerLog.d(TAG, "getDeviceIdsFromDashboard()")
         val resultWrapper = airPowerServerMgr.getDeviceIdsFromDashboard(dashboardId)
         return resultWrapper
+    }
+
+    fun removeReadNotification(notificationId: Id) {
+        if (AirPowerLog.ISLOGABLE)
+            AirPowerLog.d(TAG, "Removing notification with id: ${notificationId.id}")
+        _notification.value = _notification.value.filter { notification ->
+            notification.id.id != notificationId.id
+        }
     }
 }

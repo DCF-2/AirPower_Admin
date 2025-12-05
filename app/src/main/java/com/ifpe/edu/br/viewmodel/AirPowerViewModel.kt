@@ -365,6 +365,7 @@ class AirPowerViewModel(
         }
     }
 
+    @Deprecated("Marked to be removed on text release")
     fun fetchAllDashboardsMetricsWrapper(): Job {
         return viewModelScope.launch {
             val startTime = System.currentTimeMillis()
@@ -408,6 +409,10 @@ class AirPowerViewModel(
                 ResultWrapper.Empty -> {}
             }
         }
+    }
+
+    fun removeReadNotification(notificationId: Id) {
+        repository.removeReadNotification(notificationId)
     }
 
     private fun fetchAlarmData(): Job {
@@ -541,10 +546,12 @@ class AirPowerViewModel(
         return repository.alarmInfo
     }
 
+    @Deprecated("Marked to be removed on text release")
     fun getAllDevicesMetricsWrapper(): StateFlow<AllMetricsWrapper> {
         return repository.allDevicesMetricsWrapper
     }
 
+    @Deprecated("Marked to be removed on text release")
     fun getUserDashBoardsDataWrapper(): StateFlow<List<AllMetricsWrapper>> {
         return repository.dashBoardsMetricsWrapper
     }
