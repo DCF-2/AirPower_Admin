@@ -94,7 +94,9 @@ fun ChartTypeSelector(
     var expanded by remember { mutableStateOf(false) }
     val chartTypeLabels = mapOf(
         ChartType.BAR to "Gráfico de barra",
+        ChartType.LINE to "Gráfico de linha"
     )
+
     Box(modifier = modifier.padding(16.dp)) {
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -119,10 +121,10 @@ fun ChartTypeSelector(
                 ChartType.entries.forEach { type ->
                     DropdownMenuItem(
                         text = {
-                            Text(text = chartTypeLabels[chartType] ?: type.name)
+                            Text(text = chartTypeLabels[type] ?: type.name)
                         },
                         onClick = {
-                            onTypeSelected(chartType)
+                            onTypeSelected(type)
                             expanded = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding

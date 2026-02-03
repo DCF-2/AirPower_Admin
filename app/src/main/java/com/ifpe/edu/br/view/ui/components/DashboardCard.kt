@@ -6,6 +6,7 @@
 package com.ifpe.edu.br.view.ui.components
 
 import CustomBarChart
+import CustomLineChart
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.CustomIconButton
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.RectButton
+import com.ifpe.edu.br.model.repository.model.ChartType
 import com.ifpe.edu.br.model.repository.model.DashboardFilters
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
 import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
@@ -91,7 +93,10 @@ fun DashboardCard(
                         onSettingsClick = { showSheet = true }
                     )
                     ChartQueryDetails(activeFilters)
-                    MainChart(aggregationState = aggregatedDataState)
+                    MainChart(
+                        aggregationState = aggregatedDataState,
+                        chartType = activeFilters.chartType
+                    )
                 }
             )
         }
@@ -173,6 +178,7 @@ fun MainChart(
     paddingEnd: Dp = 0.dp,
     paddingTop: Dp = 0.dp,
     paddingBottom: Dp = 0.dp,
+    chartType: ChartType = ChartType.BAR
 ){
     CustomCard(
         paddingStart = paddingStart,
@@ -187,14 +193,29 @@ fun MainChart(
                         is ResultWrapper.Success -> {
                             val chartDataWrapper = aggregationState.value.chartDataWrapper
                             key(chartDataWrapper) {
-                                CustomBarChart(
-                                    height = 300.dp,
-                                    thickNes = 3.dp,
-                                    dataWrapper = ChartDataWrapper(
-                                        chartDataWrapper.label,
-                                        chartDataWrapper.entries
-                                    )
-                                )
+                                when (chartType) {
+                                    ChartType.BAR -> {
+                                        CustomBarChart(
+                                            height = 300.dp,
+                                            thickNes = 3.dp,
+                                            dataWrapper = ChartDataWrapper(
+                                                chartDataWrapper.label,
+                                                chartDataWrapper.entries
+                                            )
+                                        )
+                                    }
+
+                                    ChartType.LINE -> {
+                                        CustomLineChart(
+                                            height = 300.dp,
+                                            dataWrapper = ChartDataWrapper(
+                                                chartDataWrapper.label,
+                                                chartDataWrapper.entries
+                                            )
+                                        )
+                                    }
+                                }
+
                             }
                         }
 

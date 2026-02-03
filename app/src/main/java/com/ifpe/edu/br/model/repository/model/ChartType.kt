@@ -6,5 +6,5 @@
 package com.ifpe.edu.br.model.repository.model
 
 enum class ChartType {
-    BAR
+    BAR, LINE
 }
