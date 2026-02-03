@@ -248,6 +248,11 @@ fun FilterBottomSheet(
                 onIntervalSelected = { draftFilters = draftFilters.copy(interval = it) }
             )
 
+            ChartTypeSelector(
+                chartType = draftFilters.chartType,
+                onTypeSelected = {draftFilters = draftFilters.copy(chartType = it)}
+            )
+
             // Aqui você pode adicionar o TelemetryToggleRow (W, V, A)
             // TelemetryToggleRow(draftFilters.telemetryKey) { ... }
 
