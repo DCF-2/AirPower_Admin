@@ -46,6 +46,8 @@ import com.ifpe.edu.br.model.repository.remote.dto.agg.AggDataWrapperResponse
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggStrategy
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggregationRequest
 import com.ifpe.edu.br.model.repository.remote.dto.agg.ChartDataWrapper
+import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
+import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
 import com.ifpe.edu.br.model.util.ResultWrapper
 import com.ifpe.edu.br.view.ui.screens.getTimeWrapper
 import com.ifpe.edu.br.view.ui.theme.tb_primary_light
@@ -88,6 +90,7 @@ fun DashboardCard(
                         title = dashboard.title,
                         onSettingsClick = { showSheet = true }
                     )
+                    ChartQueryDetails(activeFilters)
                     MainChart(aggregationState = aggregatedDataState)
                 }
             )
@@ -105,6 +108,61 @@ fun DashboardCard(
                 showSheet = false
             }
         )
+    }
+}
+
+@Composable
+fun ChartQueryDetails(filters: DashboardFilters) {
+    val telemetryDisplayNames = mapOf(
+        TelemetryKey.POWER to "Potência",
+        TelemetryKey.CURRENT to "Corrente",
+        TelemetryKey.VOLTAGE to "Tensão",
+    )
+    val intervalLabels = mapOf(
+        TimeInterval.DAY to "Hoje",
+        TimeInterval.WEEK to "Esta Semana",
+        TimeInterval.MONTH to "Este Mês",
+        TimeInterval.YEAR to "Este Ano"
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(){
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CustomText(
+                    color = tb_primary_light,
+                    text = "Intervalo:",
+                    fontSize = 12.sp
+                )
+                CustomText(
+                    color = tb_primary_light,
+                    text = "${intervalLabels[filters.interval]}",
+                    fontSize = 10.sp
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CustomText(
+                    color = tb_primary_light,
+                    text = "Dado:",
+                    fontSize = 12.sp
+                )
+                CustomText(
+                    color = tb_primary_light,
+                    text = "${telemetryDisplayNames[filters.telemetryKey]}",
+                    fontSize = 10.sp
+                )
+            }
+        }
     }
 }
 
@@ -243,5 +301,4 @@ private fun HeaderWithSettings(
             modifier = Modifier.size(45.dp)
         )
     }
-    Spacer(modifier = Modifier.padding(vertical = 10.dp))
 }
