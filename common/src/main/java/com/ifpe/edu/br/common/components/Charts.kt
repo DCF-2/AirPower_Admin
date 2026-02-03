@@ -34,11 +34,11 @@ fun CustomBarChart(
     spacing: Dp = 5.dp,
     dataWrapper: ChartDataWrapper
 ) {
-    val allValues: List<Double> = dataWrapper.getDataSet().data.map { it.verticalValue }
-    val realMin = allValues.minOrNull() ?: 0.0
-    val realMax = allValues.maxOrNull() ?: 0.0
-    val range = realMax - realMin
-    val chartMax = realMax + range
+//    val allValues: List<Double> = dataWrapper.getDataSet().data.map { it.verticalValue }
+//    val realMin = allValues.minOrNull() ?: 0.0
+//    val realMax = allValues.maxOrNull() ?: 0.0
+//    val range = realMax - realMin
+//    val chartMax = realMax + range * 1.2
     val properties = BarProperties(thickNes, spacing)
 
     ColumnChart(
@@ -50,7 +50,7 @@ fun CustomBarChart(
                 end = paddingEnd,
                 bottom = paddingBottom
             ),
-        maxValue = chartMax,
+        //maxValue = chartMax,
         barProperties = properties,
         data = remember {
             dataWrapper.getDataSet().toBar()
