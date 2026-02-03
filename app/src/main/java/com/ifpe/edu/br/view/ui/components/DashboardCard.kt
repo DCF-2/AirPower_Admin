@@ -6,9 +6,7 @@
 package com.ifpe.edu.br.view.ui.components
 
 import CustomBarChart
-import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
@@ -32,9 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ifpe.edu.br.common.components.CustomCard
@@ -91,10 +88,7 @@ fun DashboardCard(
                         title = dashboard.title,
                         onSettingsClick = { showSheet = true }
                     )
-
                     MainChart(aggregationState = aggregatedDataState)
-
-                    Footer("Detalhes")
                 }
             )
         }
@@ -159,48 +153,6 @@ fun MainChart(
         }
     )
 }
-
-@Composable
-private fun Header(
-    title: String,
-    fontSize: TextUnit = 20.sp
-) {
-    Spacer(modifier = Modifier.padding(vertical = 5.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
-    ) {
-        CustomText(
-            color = tb_primary_light,
-            text = title,
-            fontSize = fontSize
-        )
-    }
-    Spacer(modifier = Modifier.padding(vertical = 10.dp))
-}
-
-@Composable
-private fun Footer(text: String) {
-    val context = LocalContext.current
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End
-    ) {
-        CustomText(
-            modifier = Modifier.clickable {
-                Toast.makeText(
-                    context,
-                    "Essa funcionalidade está em desenvolvimento",
-                    Toast.LENGTH_SHORT
-                ).show()
-            },
-            color = tb_primary_light,
-            text = text,
-            fontSize = 14.sp
-        )
-    }
-}
-
 
 @Composable
 private fun EmptyStateChart() {
@@ -283,11 +235,12 @@ private fun HeaderWithSettings(
         CustomText(color = tb_primary_light, text = title, fontSize = 20.sp)
 
         CustomIconButton(
-            iconResId = com.ifpe.edu.br.R.drawable.notification_icon,
+            iconResId = com.ifpe.edu.br.R.drawable.filter,
             iconTint = tb_primary_light,
             backgroundColor = Color.Transparent,
             onClick = onSettingsClick,
-            contentDescription = "Settings button"
+            contentDescription = "filtering button",
+            modifier = Modifier.size(45.dp)
         )
     }
     Spacer(modifier = Modifier.padding(vertical = 10.dp))
