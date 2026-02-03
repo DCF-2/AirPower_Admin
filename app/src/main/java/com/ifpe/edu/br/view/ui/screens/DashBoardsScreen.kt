@@ -47,7 +47,7 @@ fun DashBoardsScreen(
     CustomColumn(
         modifier = Modifier
             .verticalScroll(scrollState)
-            .fillMaxSize(),
+            .fillMaxSize().padding(horizontal = 10.dp),
         alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
         layouts = listOf {
             if (userDashboards.isEmpty()) {
@@ -59,6 +59,7 @@ fun DashBoardsScreen(
                         mainViewModel = mainViewModel,
                         allAlarms = allAlarms.value
                     )
+                    Spacer(modifier = Modifier.padding(vertical = 8.dp))
                 }
             }
             Spacer(modifier = Modifier.padding(vertical = 6.dp))

@@ -29,6 +29,7 @@ import ir.ehsannarmani.compose_charts.models.GridProperties.AxisProperties
 import ir.ehsannarmani.compose_charts.models.HorizontalIndicatorProperties
 import ir.ehsannarmani.compose_charts.models.IndicatorCount
 import ir.ehsannarmani.compose_charts.models.Line
+import kotlin.math.absoluteValue
 
 @Composable
 fun CustomBarChart(
@@ -42,7 +43,7 @@ fun CustomBarChart(
     dataWrapper: ChartDataWrapper
 ) {
     val properties = BarProperties(thickNes, spacing)
-
+    val chartScaleConfig = getChartScaleConfig(dataWrapper)
     ColumnChart(
         modifier = Modifier
             .height(height)
@@ -56,6 +57,7 @@ fun CustomBarChart(
         data = remember {
             dataWrapper.getDataSet().toBar()
         },
+        maxValue = chartScaleConfig,
         animationSpec = tween(durationMillis = 300),
         animationDelay = 100,
         animationMode = AnimationMode.Together { 100L },
@@ -90,6 +92,7 @@ fun CustomLineChart(
         dataWrapper.getDataSet().data.map { it.verticalValue }
     }
 
+    val chartScaleConfig = getChartScaleConfig(dataWrapper)
     val lineData = remember(chartValues) {
         listOf(
             Line(
@@ -122,6 +125,7 @@ fun CustomLineChart(
                 bottom = paddingBottom
             ),
         data = lineData,
+        maxValue = chartScaleConfig,
         animationMode = AnimationMode.Together { it * 100L },
         gridProperties = GridProperties(
             xAxisProperties = AxisProperties(
@@ -140,4 +144,20 @@ fun CustomLineChart(
             count = IndicatorCount.CountBased(count = 5)
         )
     )
+}
+
+@Composable
+fun getChartScaleConfig(dataWrapper: ChartDataWrapper): Double {
+    val chartScaleConfig = remember(dataWrapper) {
+        val validValues = dataWrapper.getDataSet().data
+            .map { it.verticalValue.toDouble().absoluteValue }
+            .filter { it > 0.0 }
+        if (validValues.isEmpty()) return@remember 0.0
+        val max = validValues.maxOrNull() ?: 0.0
+        val min = validValues.minOrNull() ?: 0.0
+        val rawDelta = max - min
+        val effectiveDelta = rawDelta.coerceAtLeast(max * 0.3)
+        max + (effectiveDelta * 2)
+    }
+    return chartScaleConfig
 }
