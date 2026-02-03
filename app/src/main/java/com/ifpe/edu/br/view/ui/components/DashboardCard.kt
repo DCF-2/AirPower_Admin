@@ -253,8 +253,10 @@ fun FilterBottomSheet(
                 onTypeSelected = {draftFilters = draftFilters.copy(chartType = it)}
             )
 
-            // Aqui você pode adicionar o TelemetryToggleRow (W, V, A)
-            // TelemetryToggleRow(draftFilters.telemetryKey) { ... }
+            KeySelector(
+                telemetryKey = draftFilters.telemetryKey,
+                onTelemetryKeyChange = { draftFilters = draftFilters.copy(telemetryKey = it) }
+            )
 
             Spacer(modifier = Modifier.padding(vertical = 16.dp))
 
