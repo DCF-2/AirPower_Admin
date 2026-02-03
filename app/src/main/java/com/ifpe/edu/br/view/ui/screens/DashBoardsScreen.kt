@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -27,16 +26,12 @@ import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.common.ui.theme.White
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
-import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
-import com.ifpe.edu.br.model.repository.remote.dto.agg.AggStrategy
-import com.ifpe.edu.br.model.repository.remote.dto.agg.AggregationRequest
-import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
-import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.AuthActivity
 import com.ifpe.edu.br.view.ui.components.EmptyStateCard
 import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
+import com.ifpe.edu.br.view.ui.components.DashboardCard
 
 @Composable
 fun DashBoardsScreen(
@@ -59,7 +54,7 @@ fun DashBoardsScreen(
                 EmptyStateCard()
             } else {
                 userDashboards.forEach { dashboard ->
-                    DashboardItem(
+                    DashboardCard(
                         dashboard = dashboard,
                         mainViewModel = mainViewModel,
                         allAlarms = allAlarms.value
@@ -91,33 +86,6 @@ fun DashBoardsScreen(
     )
 }
 
-@Composable
-private fun DashboardItem(
-    dashboard: DashboardInfo,
-    mainViewModel: AirPowerViewModel,
-    allAlarms: List<AlarmInfo>
-) {
-    val request = AggregationRequest(
-        devicesIds = dashboard.devicesIds,
-        aggStrategy = AggStrategy.AVG,
-        aggKey = TelemetryKey.POWER,
-        timeIntervalWrapper = getTimeWrapper(
-            System.currentTimeMillis(),
-            TimeInterval.MONTH
-        )
-    )
-    val aggregatedDataState by mainViewModel.getAggregatedDataState(request).collectAsState()
-    LaunchedEffect(dashboard.id) {
-        mainViewModel.fetchAggregatedData(request)
-    }
-    val filterAlarmsByDeviceIds =
-        filterAlarmsByDeviceIds(allAlarms, dashboard.devicesIds)
-    DevicesConsumptionSummaryCardBoard(
-        aggregationState = aggregatedDataState,
-        alarmInfo = filterAlarmsByDeviceIds,
-        cardLabel = dashboard.title
-    )
-}
 
 /**
  * Filtra uma lista de objetos [AlarmInfo] para retornar apenas aqueles associados a um conjunto específico de IDs de dispositivos.
