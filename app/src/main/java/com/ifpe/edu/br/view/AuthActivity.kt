@@ -16,6 +16,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,6 +35,8 @@ import com.ifpe.edu.br.viewmodel.AirPowerViewModelProvider
 class AuthActivity : ComponentActivity() {
     val TAG = "AuthActivity"
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition { false }
         super.onCreate(savedInstanceState)
         if (AirPowerLog.ISLOGABLE) AirPowerLog.d(TAG, "onCreate()")
         overridePendingTransition(R.anim.enter_from_right, R.anim.exit_to_left)

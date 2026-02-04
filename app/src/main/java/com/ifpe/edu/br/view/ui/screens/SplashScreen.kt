@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,6 +41,7 @@ import com.ifpe.edu.br.common.ui.theme.defaultBackgroundGradientLight
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.MainActivity
+import com.ifpe.edu.br.view.ui.components.CustomFullScreenGradientBackground
 import com.ifpe.edu.br.view.ui.theme.DefaultTransparentGradient
 import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
@@ -50,18 +53,13 @@ fun SplashScreen(
     viewModel: AirPowerViewModel,
     componentActivity: ComponentActivity
 ) {
-    val sessionStateKey = Constants.UIStateKey.SESSION
-    val sessionState = viewModel.uiStateManager.observeUIState(sessionStateKey)
-        .collectAsState(initial = UIState(Constants.UIState.EMPTY_STATE))
-
     val updateSessionStateKey = Constants.UIStateKey.REFRESH_TOKEN_KEY
     val updateSessionUIState = viewModel.uiStateManager.observeUIState(updateSessionStateKey)
         .collectAsState(initial = UIState(Constants.UIState.EMPTY_STATE))
 
-    GradientBackground(
-        if (isSystemInDarkTheme()) defaultBackgroundGradientDark
-        else defaultBackgroundGradientLight
-    )
+    val theme = MaterialTheme.colorScheme
+    CustomFullScreenGradientBackground(
+        listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f)))
 
     CustomColumn(
         modifier = Modifier
@@ -71,8 +69,8 @@ fun SplashScreen(
             Spacer(modifier = Modifier.padding(vertical = 100.dp))
             RoundedImageIcon(
                 description = "custom icon",
-                iconResId = R.mipmap.application_icon_foreground,
-                modifier = Modifier.size(250.dp)
+                iconResId = R.drawable.app_logo,
+                modifier = Modifier.wrapContentSize()
             )
             Spacer(modifier = Modifier.padding(vertical = 100.dp))
             AuthScreenPostDelayed(

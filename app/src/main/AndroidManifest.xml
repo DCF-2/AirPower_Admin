@@ -15,7 +15,7 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/airpower_icon"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AirPowerCostumer">
+        android:theme="@style/Theme.App.Starting">
         <activity
             android:name=".view.MainActivity"
             android:exported="false"
@@ -24,7 +24,7 @@
         <activity
             android:name=".view.AuthActivity"
             android:exported="true"
-            android:theme="@style/Theme.AirPowerCostumer">
+            android:theme="@style/Theme.App.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
