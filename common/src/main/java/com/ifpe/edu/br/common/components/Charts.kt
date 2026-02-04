@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,6 +30,7 @@ import ir.ehsannarmani.compose_charts.models.GridProperties.AxisProperties
 import ir.ehsannarmani.compose_charts.models.HorizontalIndicatorProperties
 import ir.ehsannarmani.compose_charts.models.IndicatorCount
 import ir.ehsannarmani.compose_charts.models.Line
+import ir.ehsannarmani.compose_charts.models.PopupProperties
 import kotlin.math.absoluteValue
 
 @Composable
@@ -38,12 +40,15 @@ fun CustomBarChart(
     paddingEnd: Dp = 0.dp,
     paddingBottom: Dp = 0.dp,
     height: Dp = 250.dp,
-    thickNes: Dp = 10.dp,
-    spacing: Dp = 5.dp,
     dataWrapper: ChartDataWrapper
 ) {
-    val properties = BarProperties(thickNes, spacing)
-    val chartScaleConfig = getChartScaleConfig(dataWrapper)
+    val chartScaleOffset = getChartScale(dataWrapper)
+    val itemCount = dataWrapper.getDataSet().data.size
+    val (dynamicThickness, dynamicSpacing) = remember(itemCount) {
+        calculateDynamicDimensions(itemCount)
+    }
+    val properties = BarProperties(dynamicThickness, dynamicSpacing)
+
     ColumnChart(
         modifier = Modifier
             .height(height)
@@ -57,7 +62,7 @@ fun CustomBarChart(
         data = remember {
             dataWrapper.getDataSet().toBar()
         },
-        maxValue = chartScaleConfig,
+        maxValue = chartScaleOffset,
         animationSpec = tween(durationMillis = 300),
         animationDelay = 100,
         animationMode = AnimationMode.Together { 100L },
@@ -75,6 +80,19 @@ fun CustomBarChart(
                 enabled = true,
                 lineCount = 5,
             )
+        ),
+        popupProperties = PopupProperties(
+            enabled = true,
+            textStyle = TextStyle.Default.copy(
+                fontSize = 14.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            ),
+            containerColor = ColorPrimaryLight,
+            cornerRadius = 8.dp,
+            contentBuilder = { value ->
+                "%.2f".format(value)
+            }
         )
     )
 }
@@ -92,7 +110,7 @@ fun CustomLineChart(
         dataWrapper.getDataSet().data.map { it.verticalValue }
     }
 
-    val chartScaleConfig = getChartScaleConfig(dataWrapper)
+    val chartScaleConfig = getChartScale(dataWrapper)
     val lineData = remember(chartValues) {
         listOf(
             Line(
@@ -109,7 +127,20 @@ fun CustomLineChart(
                     enabled = true,
                     color = SolidColor(ColorPrimaryLight),
                     strokeWidth = 2.dp,
-                    radius = 3.dp
+                    radius = 5.dp
+                ),
+                popupProperties = PopupProperties(
+                    enabled = true,
+                    textStyle = TextStyle.Default.copy(
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    containerColor = ColorPrimaryLight,
+                    cornerRadius = 8.dp,
+                    contentBuilder = { value ->
+                        "%.2f".format(value)
+                    }
                 )
             )
         )
@@ -147,7 +178,7 @@ fun CustomLineChart(
 }
 
 @Composable
-fun getChartScaleConfig(dataWrapper: ChartDataWrapper): Double {
+fun getChartScale(dataWrapper: ChartDataWrapper): Double {
     val chartScaleConfig = remember(dataWrapper) {
         val validValues = dataWrapper.getDataSet().data
             .map { it.verticalValue.toDouble().absoluteValue }
@@ -160,4 +191,23 @@ fun getChartScaleConfig(dataWrapper: ChartDataWrapper): Double {
         max + (effectiveDelta * 2)
     }
     return chartScaleConfig
+}
+
+private fun calculateDynamicDimensions(count: Int): Pair<Dp, Dp> {
+    val maxItems = 31
+    val minItems = 1
+
+    // Thickness
+    val maxThickness = 12.dp
+    val minThickness = 3.dp
+    // Spacing
+    val maxSpacing = 20.dp
+    val minSpacing = 4.dp
+    val safeCount = count.coerceIn(minItems, maxItems)
+
+    val fraction = (safeCount - minItems) / (maxItems - minItems).toFloat()
+    val thickness = maxThickness - (maxThickness - minThickness) * fraction
+    val spacing = maxSpacing - (maxSpacing - minSpacing) * fraction
+
+    return thickness to spacing
 }

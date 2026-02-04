@@ -197,7 +197,6 @@ fun MainChart(
                                     ChartType.BAR -> {
                                         CustomBarChart(
                                             height = 300.dp,
-                                            thickNes = 3.dp,
                                             dataWrapper = ChartDataWrapper(
                                                 chartDataWrapper.label,
                                                 chartDataWrapper.entries
