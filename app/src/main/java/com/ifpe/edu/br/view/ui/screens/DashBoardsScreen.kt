@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,6 +35,7 @@ import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import com.ifpe.edu.br.view.ui.components.DashboardCard
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashBoardsScreen(
     navController: NavHostController,
@@ -43,48 +46,57 @@ fun DashBoardsScreen(
     val userDashboards by
     mainViewModel.getDashboardsForCurrentUser().collectAsState(initial = emptyList())
     val allAlarms = mainViewModel.getAlarmInfoSet().collectAsState()
+    val isRefreshing by mainViewModel.isRefreshing.collectAsState()
 
-    CustomColumn(
-        modifier = Modifier
-            .verticalScroll(scrollState)
-            .fillMaxSize().padding(horizontal = 10.dp),
-        alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
-        layouts = listOf {
-            if (userDashboards.isEmpty()) {
-                EmptyStateCard()
-            } else {
-                userDashboards.forEach { dashboard ->
-                    DashboardCard(
-                        dashboard = dashboard,
-                        mainViewModel = mainViewModel,
-                        allAlarms = allAlarms.value
-                    )
-                    Spacer(modifier = Modifier.padding(vertical = 8.dp))
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            mainViewModel.forceRefresh()
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        CustomColumn(
+            modifier = Modifier
+                .verticalScroll(scrollState)
+                .fillMaxSize().padding(horizontal = 10.dp),
+            alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
+            layouts = listOf {
+                if (userDashboards.isEmpty()) {
+                    EmptyStateCard()
+                } else {
+                    userDashboards.forEach { dashboard ->
+                        DashboardCard(
+                            dashboard = dashboard,
+                            mainViewModel = mainViewModel,
+                            allAlarms = allAlarms.value
+                        )
+                        Spacer(modifier = Modifier.padding(vertical = 8.dp))
+                    }
                 }
-            }
-            Spacer(modifier = Modifier.padding(vertical = 6.dp))
-            RectButton(
-                text = "Logout",
-                onClick = {
-                    mainViewModel.logout()
-                    AirPowerUtil.launchActivity(
-                        navController.context,
-                        AuthActivity::class.java,
+                Spacer(modifier = Modifier.padding(vertical = 6.dp))
+                RectButton(
+                    text = "Logout",
+                    onClick = {
+                        mainViewModel.logout()
+                        AirPowerUtil.launchActivity(
+                            navController.context,
+                            AuthActivity::class.java,
+                        )
+                        navController.popBackStack()
+                        (context as? ComponentActivity)?.finish()
+                    },
+                    fontSize = 20.sp,
+                    colors = ButtonDefaults.buttonColors(
+                        contentColor = White,
+                        containerColor = tb_secondary_light,
+                        disabledContentColor = Color.Gray,
+                        disabledContainerColor = Color.Gray
                     )
-                    navController.popBackStack()
-                    (context as? ComponentActivity)?.finish()
-                },
-                fontSize = 20.sp,
-                colors = ButtonDefaults.buttonColors(
-                    contentColor = White,
-                    containerColor = tb_secondary_light,
-                    disabledContentColor = Color.Gray,
-                    disabledContainerColor = Color.Gray
                 )
-            )
-            Spacer(modifier = Modifier.padding(vertical = 6.dp))
-        }
-    )
+                Spacer(modifier = Modifier.padding(vertical = 6.dp))
+            }
+        )
+    }
 }
 
 

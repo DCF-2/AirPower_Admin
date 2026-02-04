@@ -24,6 +24,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
@@ -57,6 +58,9 @@ class AirPowerViewModel(
     private val jobs: MutableMap<String, Job> = mutableMapOf()
     private val aggregationDataCache =
         ConcurrentHashMap<String, MutableStateFlow<ResultWrapper<AggDataWrapperResponse>>>()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
 
     private val DEVICE_JOB = "DEVICE_JOB"
     private val ALARMS_JOB = "ALARMS_JOB"
@@ -566,4 +570,15 @@ class AirPowerViewModel(
             job.cancel()
         }
     }
+
+    fun forceRefresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            stopAllFetchers()
+            delay(500)
+            startDataFetchers()
+            _isRefreshing.value = false
+        }
+    }
+
 }
