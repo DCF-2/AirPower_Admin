@@ -5,7 +5,9 @@
 */
 package com.ifpe.edu.br.view.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenuItem
@@ -23,6 +25,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.unit.dp
 import com.ifpe.edu.br.model.repository.model.ChartType
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
@@ -185,6 +191,26 @@ fun KeySelector(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun CustomFullScreenGradientBackground(
+    modifier: Modifier = Modifier.fillMaxSize(),
+    listColor: List<Color>,
+) {
+    Canvas(
+        modifier = modifier
+    ) {
+        scale(scaleX = 1f, scaleY = 1f) {
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listColor,
+                    center = Offset(size.width / 2, size.height / 2),
+                    radius = size.width
+                )
+            )
         }
     }
 }

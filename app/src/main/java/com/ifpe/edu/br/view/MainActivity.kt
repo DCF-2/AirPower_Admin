@@ -22,7 +22,7 @@ import com.ifpe.edu.br.model.util.AirPowerLog
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.ui.screens.ExpiredSessionWarningScreen
 import com.ifpe.edu.br.view.ui.screens.MainScreen
-import com.ifpe.edu.br.view.ui.theme.AirPowerCostumerTheme
+import com.ifpe.edu.br.common.ui.theme.AirPowerCostumerTheme
 import com.ifpe.edu.br.view.ui.theme.DefaultTransparentGradient
 import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModelProvider

@@ -26,6 +26,8 @@ import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.util.AirPowerLog
 import com.ifpe.edu.br.view.ui.screens.AuthScreen
 import com.ifpe.edu.br.view.ui.screens.SplashScreen
+import com.ifpe.edu.br.view.ui.theme.darkAppThemeSchema
+import com.ifpe.edu.br.view.ui.theme.lightAppThemeSchema
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import com.ifpe.edu.br.viewmodel.AirPowerViewModelProvider
 
@@ -42,7 +44,10 @@ class AuthActivity : ComponentActivity() {
             val viewModel = AirPowerViewModelProvider.getInstance()
 
             CompositionLocalProvider(LocalContext provides adjustedContext) {
-                AirPowerCostumerTheme {
+                AirPowerCostumerTheme(
+                    lightAppScheme = lightAppThemeSchema,
+                    darkAppColorScheme = darkAppThemeSchema
+                ) {
                     Surface {
                         InitializeNavigation(viewModel, navController, this)
                     }

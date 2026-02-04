@@ -7,18 +7,24 @@ package com.ifpe.edu.br.view.ui.screens
 */
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
@@ -44,21 +52,16 @@ import com.ifpe.edu.br.common.components.CustomInputText
 import com.ifpe.edu.br.common.components.CustomProgressDialog
 import com.ifpe.edu.br.common.components.FailureDialog
 import com.ifpe.edu.br.common.components.RectButton
-import com.ifpe.edu.br.common.components.RoundedImageIcon
 import com.ifpe.edu.br.common.contracts.UIState
 import com.ifpe.edu.br.common.ui.theme.White
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.repository.remote.dto.auth.AuthUser
-import com.ifpe.edu.br.model.util.AirPowerLog
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.MainActivity
+import com.ifpe.edu.br.view.ui.components.CustomFullScreenGradientBackground
 import com.ifpe.edu.br.view.ui.components.ServerConfigBottomSheet
-import com.ifpe.edu.br.view.ui.theme.DefaultTransparentGradient
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
-import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
-import com.ifpe.edu.br.view.ui.theme.tb_tertiary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 
 @Composable
@@ -73,6 +76,7 @@ fun AuthScreen(
     val sessionState = airPowerViewModel.uiStateManager.observeUIState(authStateKey)
         .collectAsState(initial = UIState(Constants.UIState.EMPTY_STATE))
     var showServerConfig by remember { mutableStateOf(false) }
+    val theme = MaterialTheme.colorScheme
 
     LaunchedEffect(Unit) {
         if (SharedPrefManager.getInstance().isFirstRun) {
@@ -80,38 +84,61 @@ fun AuthScreen(
         }
     }
 
-    Box(
+    CustomColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(tb_tertiary_light)
-    ) {
-        CustomColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .background(tb_tertiary_light),
-            alignmentStrategy = CommonConstants.Ui.ALIGNMENT_CENTER,
-            layouts = listOf {
-                CustomCard(
-                    paddingStart = 20.dp,
-                    paddingEnd = 20.dp,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(cardCornerRadius))
-                        .clip(RoundedCornerShape(cardCornerRadius))
-                        .fillMaxWidth()
-                        .background(tb_primary_light),
-                    layouts = listOf {
+            .verticalScroll(scrollState)
+            .background(MaterialTheme.colorScheme.background), // screen background color
+        alignmentStrategy = CommonConstants.Ui.ALIGNMENT_CENTER,
+        layouts = listOf {
+            val cardColor = MaterialTheme.colorScheme.primary
+            CustomCard(
+                paddingStart = 20.dp,
+                paddingEnd = 20.dp,
+                paddingTop = 20.dp,
+                paddingBottom = 20.dp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(cardCornerRadius))
+                    .clip(RoundedCornerShape(cardCornerRadius))
+                    .fillMaxSize()
+                    .background(cardColor), // background card color
+                layouts = listOf {
+                    Column {
                         var login by rememberSaveable { mutableStateOf("") }
                         var password by rememberSaveable { mutableStateOf("") }
 
-                        Spacer(modifier = Modifier.padding(vertical = 10.dp))
+                        Spacer(modifier = Modifier.padding(vertical = 20.dp))
 
-                        RoundedImageIcon(
-                            description = "",
-                            iconResId = R.drawable.app_icon,
-                            modifier = Modifier
-                                .width(250.dp)
-                                .height(70.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(cardCornerRadius))
+                                    .wrapContentSize()
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.app_logo),
+                                    contentDescription = "App icon",
+                                    modifier = Modifier.height(150.dp),
+                                    alignment = Alignment.Center
+                                )
+                            }
+                        }
+
+                        val inputBackgroundColor = lerp(
+                            cardColor,
+                            MaterialTheme.colorScheme.onPrimary,
+                            0.05f)
+
+                        Spacer(modifier = Modifier.padding(vertical = 20.dp))
+
+                        val customSelectionColors = TextSelectionColors(
+                            handleColor = MaterialTheme.colorScheme.secondary,
+                            backgroundColor = MaterialTheme.colorScheme.secondary
                         )
 
                         CustomInputText(
@@ -120,12 +147,17 @@ fun AuthScreen(
                             label = "Email",
                             placeholder = "Digite seu email",
                             inputFieldColors = TextFieldDefaults.colors(
-                                focusedTextColor = White,
-                                unfocusedTextColor = White,
-                                focusedLabelColor = White,
-                                unfocusedLabelColor = White,
-                                focusedContainerColor = tb_primary_light,
-                                unfocusedContainerColor = tb_primary_light
+                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                focusedContainerColor = inputBackgroundColor,
+                                unfocusedPlaceholderColor = cardColor,
+                                unfocusedContainerColor = inputBackgroundColor,
+                                focusedIndicatorColor = cardColor,
+                                unfocusedIndicatorColor = cardColor,
+                                selectionColors = customSelectionColors,
+                                cursorColor = MaterialTheme.colorScheme.secondary
                             ),
                             modifier = Modifier.padding(horizontal = 10.dp)
                         )
@@ -137,12 +169,17 @@ fun AuthScreen(
                             placeholder = "Digite sua senha",
                             isPassword = true,
                             inputFieldColors = TextFieldDefaults.colors(
-                                focusedTextColor = White,
-                                unfocusedTextColor = White,
-                                focusedLabelColor = White,
-                                unfocusedLabelColor = White,
-                                focusedContainerColor = tb_primary_light,
-                                unfocusedContainerColor = tb_primary_light,
+                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                focusedContainerColor = inputBackgroundColor,
+                                unfocusedPlaceholderColor = cardColor,
+                                unfocusedContainerColor = inputBackgroundColor,
+                                focusedIndicatorColor = cardColor,
+                                unfocusedIndicatorColor = cardColor,
+                                selectionColors = customSelectionColors,
+                                cursorColor = MaterialTheme.colorScheme.secondary
                             ),
                             modifier = Modifier.padding(horizontal = 10.dp),
                             iconColor = White
@@ -152,10 +189,10 @@ fun AuthScreen(
 
                         RectButton(
                             colors = ButtonDefaults.buttonColors(
-                                contentColor = White,
-                                containerColor = tb_secondary_light,
-                                disabledContentColor = Color.Gray,
-                                disabledContainerColor = Color.Gray
+                                contentColor = MaterialTheme.colorScheme.onSecondary,
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                disabledContentColor = MaterialTheme.colorScheme.secondary,
+                                disabledContainerColor = MaterialTheme.colorScheme.onSecondary
                             ),
                             text = "Login",
                             fontSize = 15.sp,
@@ -176,10 +213,10 @@ fun AuthScreen(
 
                         RectButton(
                             colors = ButtonDefaults.buttonColors(
-                                contentColor = White,
-                                containerColor = tb_primary_light,
-                                disabledContentColor = Color.Gray,
-                                disabledContainerColor = Color.Gray
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                containerColor = cardColor,
+                                disabledContentColor = MaterialTheme.colorScheme.primary,
+                                disabledContainerColor = MaterialTheme.colorScheme.primary
                             ),
                             text = "Configurações de rede",
                             fontSize = 15.sp,
@@ -191,19 +228,19 @@ fun AuthScreen(
                                 .padding(horizontal = 20.dp)
                         )
 
-                        Spacer(modifier = Modifier.padding(vertical = 15.dp))
-                    })
+                        Spacer(modifier = Modifier.padding(vertical = 20.dp))
+                    }
+                })
+        }
+    )
+
+    if (showServerConfig) {
+        ServerConfigBottomSheet(
+            onDismiss = { showServerConfig = false },
+            onSave = {
+                showServerConfig = false
             }
         )
-
-        if (showServerConfig) {
-            ServerConfigBottomSheet(
-                onDismiss = { showServerConfig = false },
-                onSave = {
-                    showServerConfig = false
-                }
-            )
-        }
     }
 
     when (sessionState.value.state) {
@@ -211,7 +248,7 @@ fun AuthScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.9f))
+                    .background(Color.Transparent.copy(alpha = .8f))
             ) {
                 FailureDialog(
                     modifier = Modifier
@@ -220,11 +257,12 @@ fun AuthScreen(
                     drawableResId = R.drawable.auth_issue,
                     iconSize = 150.dp,
                     text = sessionState.value.state,
-                    textColor = tb_primary_light,
+                    textColor = theme.onSurface,
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
                     }
-                ) { DefaultTransparentGradient() }
+                ) { CustomFullScreenGradientBackground(
+                    listColor = listOf(theme.surface, theme.surface.copy(alpha = 0.6f))) }
             }
         }
 
@@ -232,7 +270,7 @@ fun AuthScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f))
+                    .background(Color.Transparent.copy(alpha = .8f))
             ) {
                 FailureDialog(
                     modifier = Modifier
@@ -241,11 +279,12 @@ fun AuthScreen(
                     drawableResId = R.drawable.generic_error,
                     iconSize = 150.dp,
                     text = "Um erro inesperado ocorreu",
-                    textColor = tb_primary_light,
+                    textColor = theme.onSurface,
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
                     }
-                ) { modifier -> DefaultTransparentGradient(modifier) }
+                ) { modifier -> CustomFullScreenGradientBackground(modifier,
+                    listOf(theme.surface, theme.surface.copy(alpha = 0.6f))) }
             }
         }
 
@@ -253,7 +292,7 @@ fun AuthScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f))
+                    .background(Color.Transparent.copy(alpha = .8f))
             ) {
                 FailureDialog(
                     modifier = Modifier
@@ -262,27 +301,29 @@ fun AuthScreen(
                     drawableResId = R.drawable.network_issue,
                     iconSize = 150.dp,
                     text = "Houve um problema de conexão com o servidor",
-                    textColor = tb_primary_light,
+                    textColor = theme.onSurface,
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
                     }
-                ) { modifier -> DefaultTransparentGradient(modifier) }
+                ) { modifier -> CustomFullScreenGradientBackground(modifier,
+                    listOf(theme.surface, theme.surface.copy(alpha = 0.6f))) }
             }
         }
 
         Constants.UIState.STATE_LOADING -> {
             Box(
                 modifier = Modifier
-                    .background(Color.Black.copy(alpha = 0.5f))
+                    .background(Color.Transparent.copy(alpha = .8f))
             ) {
                 CustomProgressDialog(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .fillMaxSize(),
-                    indicatorColor = tb_secondary_light,
-                    textColor = tb_primary_light
+                    indicatorColor = theme.secondary,
+                    textColor = theme.onSurface
                 ) { modifier ->
-                    DefaultTransparentGradient(modifier)
+                    CustomFullScreenGradientBackground(modifier,
+                        listOf(theme.surface, theme.surface.copy(alpha = 0.6f)))
                 }
             }
         }

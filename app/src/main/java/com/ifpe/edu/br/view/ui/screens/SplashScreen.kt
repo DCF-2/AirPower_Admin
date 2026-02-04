@@ -71,7 +71,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.padding(vertical = 100.dp))
             RoundedImageIcon(
                 description = "custom icon",
-                iconResId = R.drawable.app_icon,
+                iconResId = R.mipmap.application_icon_foreground,
                 modifier = Modifier.size(250.dp)
             )
             Spacer(modifier = Modifier.padding(vertical = 100.dp))

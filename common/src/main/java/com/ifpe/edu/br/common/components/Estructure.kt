@@ -69,11 +69,6 @@ fun CustomColumn(
 
 @Composable
 fun CustomCard(
-    layouts: List<@Composable () -> Unit>,
-    paddingStart: Dp = 0.dp,
-    paddingEnd: Dp = 0.dp,
-    paddingTop: Dp = 0.dp,
-    paddingBottom: Dp = 0.dp,
     modifier: Modifier = Modifier
         .clip(RoundedCornerShape(cardCornerRadius))
         .fillMaxWidth()
@@ -83,7 +78,12 @@ fun CustomCard(
                 start = Offset(0f, 0f),
                 end = Offset(1000f, 1000f)
             )
-        )
+        ),
+    layouts: List<@Composable () -> Unit>,
+    paddingStart: Dp = 0.dp,
+    paddingEnd: Dp = 0.dp,
+    paddingTop: Dp = 0.dp,
+    paddingBottom: Dp = 0.dp,
 ) {
     Surface(
         modifier = Modifier.padding(
