@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -65,6 +66,7 @@ fun CustomInputText(
     label: String? = null,
     placeholder: String = "",
     leadingIcon: @Composable (() -> Unit)? = null,
+    onFocusChanged: ((Boolean) -> Unit)? = null,
     isPassword: Boolean = false,
     singleLine: Boolean = true,
     shape: Shape = RectangleShape,
@@ -84,7 +86,9 @@ fun CustomInputText(
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .onFocusChanged({
+                onFocusChanged?.invoke(it.isFocused)
+            }),
         label = label?.let {
             { Text(it) }
         },

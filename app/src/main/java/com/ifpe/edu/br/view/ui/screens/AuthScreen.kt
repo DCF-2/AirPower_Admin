@@ -9,6 +9,8 @@ package com.ifpe.edu.br.view.ui.screens
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,6 +94,8 @@ fun AuthScreen(
         alignmentStrategy = CommonConstants.Ui.ALIGNMENT_CENTER,
         layouts = listOf {
             val cardColor = MaterialTheme.colorScheme.primary
+            var isSelectionHandlerFocused by remember { mutableStateOf(false) }
+
             CustomCard(
                 paddingStart = 20.dp,
                 paddingEnd = 20.dp,
@@ -99,8 +103,13 @@ fun AuthScreen(
                 paddingBottom = 20.dp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(cardCornerRadius))
-                    .clip(RoundedCornerShape(cardCornerRadius))
                     .fillMaxSize()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ){
+                        isSelectionHandlerFocused = false
+                    }
                     .background(cardColor), // background card color
                 layouts = listOf {
                     Column {
@@ -135,14 +144,18 @@ fun AuthScreen(
                             0.05f)
 
                         Spacer(modifier = Modifier.padding(vertical = 20.dp))
-
-                        val customSelectionColors = TextSelectionColors(
-                            handleColor = MaterialTheme.colorScheme.secondary,
-                            backgroundColor = MaterialTheme.colorScheme.secondary
-                        )
+                        
+                        val customSelectionColors = remember(isSelectionHandlerFocused) {
+                            TextSelectionColors(
+                                handleColor = if (isSelectionHandlerFocused) theme.secondary
+                                else Color.Transparent,
+                                backgroundColor = theme.secondary.copy(alpha = 0.4f)
+                            )
+                        }
 
                         CustomInputText(
                             value = login,
+                            onFocusChanged = {focused -> isSelectionHandlerFocused = focused },
                             onValueChange = { login = it },
                             label = "Email",
                             placeholder = "Digite seu email",
@@ -159,12 +172,13 @@ fun AuthScreen(
                                 selectionColors = customSelectionColors,
                                 cursorColor = MaterialTheme.colorScheme.secondary
                             ),
-                            modifier = Modifier.padding(horizontal = 10.dp)
+                            modifier = Modifier
                         )
 
                         CustomInputText(
                             value = password,
                             onValueChange = { password = it },
+                            onFocusChanged = {focused -> isSelectionHandlerFocused = focused },
                             label = "Senha",
                             placeholder = "Digite sua senha",
                             isPassword = true,
@@ -181,7 +195,7 @@ fun AuthScreen(
                                 selectionColors = customSelectionColors,
                                 cursorColor = MaterialTheme.colorScheme.secondary
                             ),
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier,
                             iconColor = White
                         )
 
@@ -197,6 +211,7 @@ fun AuthScreen(
                             text = "Login",
                             fontSize = 15.sp,
                             onClick = {
+                                isSelectionHandlerFocused = false
                                 viewModel.initSession(
                                     AuthUser(
                                         username = login,
@@ -205,8 +220,7 @@ fun AuthScreen(
                                 )
                             },
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 20.dp)
+                                .fillMaxWidth().padding(horizontal = 3.dp)
                         )
 
                         Spacer(modifier = Modifier.padding(vertical = 15.dp))
@@ -221,6 +235,7 @@ fun AuthScreen(
                             text = "Configurações de rede",
                             fontSize = 15.sp,
                             onClick = {
+                                isSelectionHandlerFocused = false
                                 showServerConfig = true
                             },
                             modifier = Modifier
