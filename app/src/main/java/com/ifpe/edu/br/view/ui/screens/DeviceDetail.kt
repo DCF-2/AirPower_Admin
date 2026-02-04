@@ -26,9 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.ifpe.edu.br.common.CommonConstants
-import com.ifpe.edu.br.common.components.CustomBarChart
 import com.ifpe.edu.br.common.components.CustomCard
 import com.ifpe.edu.br.common.components.CustomColumn
+import com.ifpe.edu.br.common.components.CustomColumnChart
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.model.repository.model.HomeScreenAlarmSummaryCard
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
@@ -187,7 +187,7 @@ private fun DeviceConsumptionCard(
                     Spacer(modifier = Modifier.padding(vertical = 12.dp))
 
                     if (aggregationState is ResultWrapper.Success) {
-                        CustomBarChart(
+                        CustomColumnChart(
                             height = 300.dp,
                             dataWrapper = ChartDataWrapper(
                                 aggregationState.value.chartDataWrapper.label,

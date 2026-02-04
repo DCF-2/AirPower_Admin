@@ -39,9 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.ifpe.edu.br.common.CommonConstants
-import com.ifpe.edu.br.common.components.CustomBarChart
 import com.ifpe.edu.br.common.components.CustomCard
 import com.ifpe.edu.br.common.components.CustomColumn
+import com.ifpe.edu.br.common.components.CustomColumnChart
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.Constants
@@ -330,7 +330,7 @@ private fun ConsumptionSummaryCard(
             modifier = Modifier.fillMaxSize(),
             layouts = listOf {
                 Spacer(modifier = Modifier.padding(vertical = 12.dp))
-                CustomBarChart(
+                CustomColumnChart(
                     height = 300.dp,
                     dataWrapper = ChartDataWrapper(
                         aggDataWrapperResponse.chartDataWrapper.label,
