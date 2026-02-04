@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,6 +98,13 @@ fun DashboardCard(
                         aggregationState = aggregatedDataState,
                         chartType = activeFilters.chartType
                     )
+                    if (aggregatedDataState is ResultWrapper.Success) {
+                        val wrapper = (aggregatedDataState as ResultWrapper.Success).value.chartDataWrapper
+                        StatisticsRow(
+                            dataWrapper = ChartDataWrapper(wrapper.label, wrapper.entries),
+                            telemetryKey = activeFilters.telemetryKey
+                        )
+                    }
                 }
             )
         }
@@ -323,6 +331,72 @@ private fun HeaderWithSettings(
             onClick = onSettingsClick,
             contentDescription = "filtering button",
             modifier = Modifier.size(45.dp)
+        )
+    }
+}
+
+@Composable
+fun StatisticsRow(
+    dataWrapper: ChartDataWrapper,
+    telemetryKey: TelemetryKey
+) {
+    val stats = remember(dataWrapper) {
+        val values = dataWrapper.entries.map { it.value }
+        if (values.isEmpty()) return@remember null
+        val max = values.maxOrNull() ?: 0.0
+        val min = values.minOrNull() ?: 0.0
+        val avg = values.average()
+        Triple(max, min, avg)
+    }
+
+    if (stats == null) return
+    val (max, min, avg) = stats
+    val unit = when(telemetryKey) {
+        TelemetryKey.POWER -> "W"
+        TelemetryKey.VOLTAGE -> "V"
+        TelemetryKey.CURRENT -> "A"
+    }
+
+    CustomCard(
+        paddingTop = 8.dp,
+        paddingBottom = 8.dp,
+        layouts = listOf {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatItem(label = "Mínimo", value = min.toDouble(), unit = unit, color = Color(0xFF4CAF50)) // green
+                StatItem(label = "Média", value = avg, unit = unit, color = tb_primary_light)
+                StatItem(label = "Máximo", value = max.toDouble(), unit = unit, color = Color(0xFFE91E63)) // red
+            }
+        }
+    )
+}
+
+@Composable
+fun StatItem(
+    label: String,
+    value: Double,
+    unit: String,
+    color: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CustomText(
+            text = label,
+            fontSize = 16.sp,
+            color = tb_primary_light.copy(alpha = 0.7f),
+            fontWeight = FontWeight.Normal
+        )
+        CustomText(
+            text = "%.1f %s".format(value, unit),
+            fontSize = 18.sp,
+            color = color,
+            fontWeight = FontWeight.Bold
         )
     }
 }
