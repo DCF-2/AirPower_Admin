@@ -46,7 +46,7 @@ public class SharedPrefManager {
     private SharedPrefManager(Context context) {
         mSP = context.getSharedPreferences(PREF_FILE_NAME, Context.MODE_PRIVATE);
         mEditor = mSP.edit();
-        context = context;
+        this.context = context;
     }
 
     public void writeString(String key, String value) {

@@ -58,7 +58,7 @@ object AirPowerServerConnectionContractImpl : IConnectionManager {
         return Interceptor { chain ->
             var request = chain.request()
             val isVpnActive = NetworkUtils.isVpnActive(AirPowerApplication.getContext())
-            val forceVpn = SharedPrefManager.getInstance().isForceVpn
+            val forceVpn = spM.isForceVpn()
 
             val targetBaseUrlString = if (isVpnActive || forceVpn) {
                 if (AirPowerLog.ISLOGABLE) {

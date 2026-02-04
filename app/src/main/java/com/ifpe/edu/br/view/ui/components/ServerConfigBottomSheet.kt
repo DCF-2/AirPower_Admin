@@ -109,7 +109,7 @@ fun ServerConfigBottomSheet(
                 text = "Salvar",
                 onClick = {
                     SharedPrefManager.getInstance().setServerIps(localIp, vpnIp)
-                    SharedPrefManager.getInstance().isForceVpn = forceVpn
+                    SharedPrefManager.getInstance().setForceVpn(forceVpn)
                     Toast.makeText(context, "Configurações salvas!", Toast.LENGTH_SHORT).show()
                     onSave()
                     onDismiss()
