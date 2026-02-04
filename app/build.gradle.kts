@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
     annotationProcessor(libs.androidx.room.compiler)
 
     // Retrofit

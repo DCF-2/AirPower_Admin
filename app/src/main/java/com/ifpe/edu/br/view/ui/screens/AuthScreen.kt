@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,10 +49,12 @@ import com.ifpe.edu.br.common.contracts.UIState
 import com.ifpe.edu.br.common.ui.theme.White
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.Constants
+import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.repository.remote.dto.auth.AuthUser
 import com.ifpe.edu.br.model.util.AirPowerLog
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.MainActivity
+import com.ifpe.edu.br.view.ui.components.ServerConfigBottomSheet
 import com.ifpe.edu.br.view.ui.theme.DefaultTransparentGradient
 import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
@@ -64,15 +67,18 @@ fun AuthScreen(
     viewModel: AndroidViewModel,
     componentActivity: ComponentActivity
 ) {
-    val TAG = "AuthScreen"
-    LaunchedEffect(Unit) {
-        if (AirPowerLog.ISLOGABLE) AirPowerLog.d(TAG, "LaunchedEffect()")
-    }
     val scrollState = rememberScrollState()
     val airPowerViewModel = viewModel as AirPowerViewModel
     val authStateKey = Constants.UIStateKey.LOGIN_KEY
     val sessionState = airPowerViewModel.uiStateManager.observeUIState(authStateKey)
         .collectAsState(initial = UIState(Constants.UIState.EMPTY_STATE))
+    var showServerConfig by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (SharedPrefManager.getInstance().isFirstRun) {
+            showServerConfig = true
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -167,9 +173,37 @@ fun AuthScreen(
                         )
 
                         Spacer(modifier = Modifier.padding(vertical = 15.dp))
+
+                        RectButton(
+                            colors = ButtonDefaults.buttonColors(
+                                contentColor = White,
+                                containerColor = tb_primary_light,
+                                disabledContentColor = Color.Gray,
+                                disabledContainerColor = Color.Gray
+                            ),
+                            text = "Configurações de rede",
+                            fontSize = 15.sp,
+                            onClick = {
+                                showServerConfig = true
+                            },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 20.dp)
+                        )
+
+                        Spacer(modifier = Modifier.padding(vertical = 15.dp))
                     })
             }
         )
+
+        if (showServerConfig) {
+            ServerConfigBottomSheet(
+                onDismiss = { showServerConfig = false },
+                onSave = {
+                    showServerConfig = false
+                }
+            )
+        }
     }
 
     when (sessionState.value.state) {
