@@ -93,7 +93,7 @@ fun ChartTypeSelector(
 {
     var expanded by remember { mutableStateOf(false) }
     val chartTypeLabels = mapOf(
-        ChartType.BAR to "Gráfico de barra",
+        ChartType.BAR to "Gráfico de coluna",
         ChartType.LINE to "Gráfico de linha"
     )
 

@@ -13,28 +13,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.TextStyle.Companion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ifpe.edu.br.common.contracts.ChartDataWrapper
 import com.ifpe.edu.br.common.ui.theme.ColorPrimaryLight
+import com.ifpe.edu.br.common.ui.theme.tb_primary_light
+import com.ifpe.edu.br.common.ui.theme.tb_secondary_light
 import ir.ehsannarmani.compose_charts.ColumnChart
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.AnimationMode
 import ir.ehsannarmani.compose_charts.models.BarProperties
+import ir.ehsannarmani.compose_charts.models.Bars
 import ir.ehsannarmani.compose_charts.models.DotProperties
 import ir.ehsannarmani.compose_charts.models.DrawStyle
 import ir.ehsannarmani.compose_charts.models.GridProperties
 import ir.ehsannarmani.compose_charts.models.GridProperties.AxisProperties
 import ir.ehsannarmani.compose_charts.models.HorizontalIndicatorProperties
 import ir.ehsannarmani.compose_charts.models.IndicatorCount
+import ir.ehsannarmani.compose_charts.models.LabelProperties
 import ir.ehsannarmani.compose_charts.models.Line
 import ir.ehsannarmani.compose_charts.models.PopupProperties
 import kotlin.math.absoluteValue
 
 @Composable
-fun CustomBarChart(
+fun CustomColumnChart(
     paddingStart: Dp = 0.dp,
     paddingTop: Dp = 0.dp,
     paddingEnd: Dp = 0.dp,
@@ -47,7 +52,8 @@ fun CustomBarChart(
     val (dynamicThickness, dynamicSpacing) = remember(itemCount) {
         calculateDynamicDimensions(itemCount)
     }
-    val properties = BarProperties(dynamicThickness, dynamicSpacing)
+    val radius = Bars.Data.Radius.Rectangle(topRight = 3.dp, topLeft = 3.dp)
+    val properties = BarProperties(dynamicThickness, dynamicSpacing, cornerRadius = radius)
 
     ColumnChart(
         modifier = Modifier
@@ -68,13 +74,14 @@ fun CustomBarChart(
         animationMode = AnimationMode.Together { 100L },
         indicatorProperties = HorizontalIndicatorProperties(
             enabled = true,
-            textStyle = TextStyle.Default.copy(fontSize = 10.sp),
-            count = IndicatorCount.CountBased(count = 10)
+            textStyle = TextStyle.Default.copy(fontSize = 12.sp, color = tb_primary_light),
+            count = IndicatorCount.CountBased(count = 5),
+            padding = 1.dp
         ),
         gridProperties = GridProperties(
             xAxisProperties = AxisProperties(
                 enabled = true,
-                lineCount = 10,
+                lineCount = itemCount.coerceAtMost(10),
             ),
             yAxisProperties = AxisProperties(
                 enabled = true,
@@ -88,11 +95,16 @@ fun CustomBarChart(
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             ),
-            containerColor = ColorPrimaryLight,
+            containerColor = tb_secondary_light,
             cornerRadius = 8.dp,
             contentBuilder = { value ->
                 "%.2f".format(value)
             }
+        ),
+        labelProperties = LabelProperties(
+            enabled = true,
+            textStyle = TextStyle.Default.copy(fontSize = 10.sp, color = tb_primary_light),
+            padding = 4.dp
         )
     )
 }
@@ -116,8 +128,8 @@ fun CustomLineChart(
             Line(
                 label = dataWrapper.getName(),
                 values = chartValues,
-                color = SolidColor(ColorPrimaryLight),
-                firstGradientFillColor = ColorPrimaryLight.copy(alpha = 0.5f),
+                color = SolidColor(tb_primary_light),
+                firstGradientFillColor = tb_primary_light.copy(alpha = 1f),
                 secondGradientFillColor = Color.Transparent,
                 strokeAnimationSpec = tween(1000),
                 gradientAnimationDelay = 500,
@@ -125,9 +137,9 @@ fun CustomLineChart(
                 curvedEdges = true,
                 dotProperties = DotProperties(
                     enabled = true,
-                    color = SolidColor(ColorPrimaryLight),
+                    color = SolidColor(tb_secondary_light),
                     strokeWidth = 2.dp,
-                    radius = 5.dp
+                    radius = calculateDynamicDotSize(chartValues.size)
                 ),
                 popupProperties = PopupProperties(
                     enabled = true,
@@ -136,7 +148,7 @@ fun CustomLineChart(
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     ),
-                    containerColor = ColorPrimaryLight,
+                    containerColor = tb_secondary_light,
                     cornerRadius = 8.dp,
                     contentBuilder = { value ->
                         "%.2f".format(value)
@@ -171,7 +183,7 @@ fun CustomLineChart(
 
         indicatorProperties = HorizontalIndicatorProperties(
             enabled = true,
-            textStyle = TextStyle.Default.copy(fontSize = 10.sp, color = ColorPrimaryLight),
+            textStyle = TextStyle.Default.copy(fontSize = 12.sp, color = tb_primary_light),
             count = IndicatorCount.CountBased(count = 5)
         )
     )
@@ -210,4 +222,17 @@ private fun calculateDynamicDimensions(count: Int): Pair<Dp, Dp> {
     val spacing = maxSpacing - (maxSpacing - minSpacing) * fraction
 
     return thickness to spacing
+}
+
+private fun calculateDynamicDotSize(count: Int): Dp{
+    val maxItems = 31
+    val minItems = 1
+
+    val maxThickness = 10.dp
+    val minThickness = 2.dp
+    val safeCount = count.coerceIn(minItems, maxItems)
+
+    val fraction = (safeCount - minItems) / (maxItems - minItems).toFloat()
+    val thickness = maxThickness - (maxThickness - minThickness) * fraction
+    return thickness
 }

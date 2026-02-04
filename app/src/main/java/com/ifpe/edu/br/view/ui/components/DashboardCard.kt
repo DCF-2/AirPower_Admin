@@ -5,7 +5,7 @@
 // Copyright (c) 2025 IFPE. All rights reserved.
 package com.ifpe.edu.br.view.ui.components
 
-import CustomBarChart
+import CustomColumnChart
 import CustomLineChart
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -195,7 +195,7 @@ fun MainChart(
                             key(chartDataWrapper) {
                                 when (chartType) {
                                     ChartType.BAR -> {
-                                        CustomBarChart(
+                                        CustomColumnChart(
                                             height = 300.dp,
                                             dataWrapper = ChartDataWrapper(
                                                 chartDataWrapper.label,
@@ -269,7 +269,11 @@ fun FilterBottomSheet(
         containerColor = Color.White
     ) {
         Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-            CustomText(text = "Configurações do Gráfico de $sheetTitle", fontSize = 20.sp, color = tb_primary_light)
+            CustomText(
+                text = sheetTitle,
+                fontSize = 20.sp,
+                color = tb_primary_light
+            )
 
             Spacer(modifier = Modifier.padding(vertical = 8.dp))
 

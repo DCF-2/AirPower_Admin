@@ -5,7 +5,7 @@ package com.ifpe.edu.br.view.ui.screens
 * Author: Willian Santos
 * Project: AirPower Costumer
 */
-import CustomBarChart
+import CustomColumnChart
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -330,7 +330,7 @@ private fun ConsumptionSummaryCard(
             modifier = Modifier.fillMaxSize(),
             layouts = listOf {
                 Spacer(modifier = Modifier.padding(vertical = 12.dp))
-                CustomBarChart(
+                CustomColumnChart(
                     height = 300.dp,
                     dataWrapper = ChartDataWrapper(
                         aggDataWrapperResponse.chartDataWrapper.label,

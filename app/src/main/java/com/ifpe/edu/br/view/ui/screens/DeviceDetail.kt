@@ -1,6 +1,6 @@
 package com.ifpe.edu.br.view.ui.screens
 
-import CustomBarChart
+import CustomColumnChart
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -187,7 +187,7 @@ private fun DeviceConsumptionCard(
                     Spacer(modifier = Modifier.padding(vertical = 12.dp))
 
                     if (aggregationState is ResultWrapper.Success) {
-                        CustomBarChart(
+                        CustomColumnChart(
                             height = 300.dp,
                             dataWrapper = ChartDataWrapper(
                                 aggregationState.value.chartDataWrapper.label,
