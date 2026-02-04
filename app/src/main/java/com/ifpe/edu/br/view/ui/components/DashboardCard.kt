@@ -5,8 +5,6 @@
 // Copyright (c) 2025 IFPE. All rights reserved.
 package com.ifpe.edu.br.view.ui.components
 
-import CustomColumnChart
-import CustomLineChart
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ifpe.edu.br.common.components.CustomCard
 import com.ifpe.edu.br.common.components.CustomColumn
+import com.ifpe.edu.br.common.components.CustomColumnChart
 import com.ifpe.edu.br.common.components.CustomIconButton
+import com.ifpe.edu.br.common.components.CustomLineChart
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.model.repository.model.ChartType
@@ -124,19 +124,21 @@ fun DashboardCard(
     }
 }
 
+private val telemetryDisplayNames = mapOf(
+    TelemetryKey.POWER to "Potência",
+    TelemetryKey.CURRENT to "Corrente",
+    TelemetryKey.VOLTAGE to "Tensão",
+)
+private val intervalLabels = mapOf(
+    TimeInterval.DAY to "Hoje",
+    TimeInterval.WEEK to "Esta Semana",
+    TimeInterval.MONTH to "Este Mês",
+    TimeInterval.YEAR to "Este Ano"
+)
+
 @Composable
 fun ChartQueryDetails(filters: DashboardFilters) {
-    val telemetryDisplayNames = mapOf(
-        TelemetryKey.POWER to "Potência",
-        TelemetryKey.CURRENT to "Corrente",
-        TelemetryKey.VOLTAGE to "Tensão",
-    )
-    val intervalLabels = mapOf(
-        TimeInterval.DAY to "Hoje",
-        TimeInterval.WEEK to "Esta Semana",
-        TimeInterval.MONTH to "Este Mês",
-        TimeInterval.YEAR to "Este Ano"
-    )
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End,
@@ -205,20 +207,14 @@ fun MainChart(
                                     ChartType.BAR -> {
                                         CustomColumnChart(
                                             height = 300.dp,
-                                            dataWrapper = ChartDataWrapper(
-                                                chartDataWrapper.label,
-                                                chartDataWrapper.entries
-                                            )
+                                            dataWrapper = chartDataWrapper
                                         )
                                     }
 
                                     ChartType.LINE -> {
                                         CustomLineChart(
                                             height = 300.dp,
-                                            dataWrapper = ChartDataWrapper(
-                                                chartDataWrapper.label,
-                                                chartDataWrapper.entries
-                                            )
+                                            dataWrapper = chartDataWrapper
                                         )
                                     }
                                 }

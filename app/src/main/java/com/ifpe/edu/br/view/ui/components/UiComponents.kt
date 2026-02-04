@@ -29,6 +29,13 @@ import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
 import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 
+private val intervalLabels = mapOf(
+    TimeInterval.DAY to "Hoje",
+    TimeInterval.WEEK to "Esta Semana",
+    TimeInterval.MONTH to "Este Mês",
+    TimeInterval.YEAR to "Este Ano"
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimeIntervalSelector(
@@ -37,13 +44,6 @@ fun TimeIntervalSelector(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-
-    val intervalLabels = mapOf(
-        TimeInterval.DAY to "Hoje",
-        TimeInterval.WEEK to "Esta Semana",
-        TimeInterval.MONTH to "Este Mês",
-        TimeInterval.YEAR to "Este Ano"
-    )
 
     Box(modifier = modifier.padding(16.dp)) {
         ExposedDropdownMenuBox(
@@ -83,6 +83,11 @@ fun TimeIntervalSelector(
     }
 }
 
+private val chartTypeLabels = mapOf(
+    ChartType.BAR to "Gráfico de coluna",
+    ChartType.LINE to "Gráfico de linha"
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChartTypeSelector(
@@ -92,10 +97,6 @@ fun ChartTypeSelector(
 )
 {
     var expanded by remember { mutableStateOf(false) }
-    val chartTypeLabels = mapOf(
-        ChartType.BAR to "Gráfico de coluna",
-        ChartType.LINE to "Gráfico de linha"
-    )
 
     Box(modifier = modifier.padding(16.dp)) {
         ExposedDropdownMenuBox(
@@ -135,6 +136,12 @@ fun ChartTypeSelector(
     }
 }
 
+private val telemetryDisplayNames = mapOf(
+    TelemetryKey.POWER to "Potência",
+    TelemetryKey.CURRENT to "Corrente",
+    TelemetryKey.VOLTAGE to "Tensão",
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KeySelector(
@@ -144,12 +151,6 @@ fun KeySelector(
 )
 {
     var expanded by remember { mutableStateOf(false) }
-    val telemetryDisplayNames = mapOf(
-        TelemetryKey.POWER to "Potência",
-        TelemetryKey.CURRENT to "Corrente",
-        TelemetryKey.VOLTAGE to "Tensão",
-    )
-
     Box(modifier = modifier.padding(16.dp)) {
         ExposedDropdownMenuBox(
             expanded = expanded,

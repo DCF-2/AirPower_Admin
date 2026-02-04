@@ -2,7 +2,8 @@
 // Author: Willian Santos
 // Project: AirPower Costumer
 
-// Copyright (c) 2025 IFPE. All rights reserved.package com.ifpe.edu.br.common.components
+// Copyright (c) 2025 IFPE. All rights reserved.
+package com.ifpe.edu.br.common.components
 
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.height
@@ -13,13 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.TextStyle.Companion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ifpe.edu.br.common.contracts.ChartDataWrapper
-import com.ifpe.edu.br.common.ui.theme.ColorPrimaryLight
 import com.ifpe.edu.br.common.ui.theme.tb_primary_light
 import com.ifpe.edu.br.common.ui.theme.tb_secondary_light
 import ir.ehsannarmani.compose_charts.ColumnChart
