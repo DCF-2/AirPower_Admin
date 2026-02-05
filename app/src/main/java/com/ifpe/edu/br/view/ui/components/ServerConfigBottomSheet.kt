@@ -6,17 +6,23 @@
 package com.ifpe.edu.br.view.ui.components
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,14 +32,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ifpe.edu.br.common.components.CustomInputText
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.RectButton
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,10 +55,12 @@ fun ServerConfigBottomSheet(
     var vpnIp by remember { mutableStateOf(SharedPrefManager.getInstance().vpnIp) }
     var forceVpn by remember { mutableStateOf(SharedPrefManager.getInstance().isForceVpn) }
 
+    val theme = MaterialTheme.colorScheme
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White
+        containerColor = theme.surface
     ) {
         Column(
             modifier = Modifier
@@ -59,31 +68,60 @@ fun ServerConfigBottomSheet(
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
-            CustomText(
-                text = "Configuração de Rede",
-                fontSize = 20.sp,
-                color = tb_primary_light,
-                fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 15.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CustomText(
+                    text = "Configuração de Rede",
+                    fontStyle = AirPowerTheme.typography.displayLarge,
+                    color = theme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.padding(vertical = 20.dp))
+
+            val inputBackgroundColor = lerp(
+                MaterialTheme.colorScheme.surface,
+                MaterialTheme.colorScheme.onPrimary,
+                0.05f)
+
+            val customSelectionColors = TextSelectionColors(
+                handleColor = theme.secondary,
+                backgroundColor = theme.secondary
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
+            CustomInputText(
                 value = localIp,
                 onValueChange = { localIp = it },
-                label = { Text("Endereço Local (Wi-Fi)", color = tb_primary_light) },
+                label = "Endereço Local (Wi-Fi)",
+                labelFontStyle = AirPowerTheme.typography.bodySmall,
+                placeholderFontStyle = AirPowerTheme.typography.button,
+                placeholder = "Digite o endereço IP e porta",
+                inputFieldColors = getCustomInputTextColors(
+                    inputBackgroundColor,
+                    customSelectionColors
+                ),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
+            CustomInputText(
                 value = vpnIp,
                 onValueChange = { vpnIp = it },
-                label = { Text("Endereço VPN", color = tb_primary_light) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                labelFontStyle = AirPowerTheme.typography.bodySmall,
+                placeholderFontStyle = AirPowerTheme.typography.button,
+                label = "Endereço VPN",
+                placeholder = "Digite o endereço IP e porta",
+                inputFieldColors = getCustomInputTextColors(
+                    inputBackgroundColor,
+                    customSelectionColors
+                ),
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -95,9 +133,14 @@ fun ServerConfigBottomSheet(
                 Text(
                     text = "Forçar uso do endereço VPN",
                     modifier = Modifier.weight(1f),
-                    color = tb_primary_light
+                    style = AirPowerTheme.typography.button,
+                    color = theme.onSurface
                 )
                 Switch(
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = theme.onPrimary,
+                        checkedTrackColor = theme.primary,
+                    ),
                     checked = forceVpn,
                     onCheckedChange = { forceVpn = it }
                 )
@@ -106,17 +149,48 @@ fun ServerConfigBottomSheet(
             Spacer(modifier = Modifier.height(24.dp))
 
             RectButton(
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = theme.onPrimary,
+                    containerColor = theme.primary,
+                    disabledContentColor = theme.onPrimary,
+                    disabledContainerColor = theme.primary
+                ),
+                fontStyle = AirPowerTheme.typography.button,
                 text = "Salvar",
+                fontSize = 15.sp,
                 onClick = {
                     SharedPrefManager.getInstance().setServerIps(localIp, vpnIp)
                     SharedPrefManager.getInstance().setForceVpn(forceVpn)
                     Toast.makeText(context, "Configurações salvas!", Toast.LENGTH_SHORT).show()
                     onSave()
                     onDismiss()
-                }
+                },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+@Composable
+private fun getCustomInputTextColors(
+    inputBackgroundColor: Color,
+    customSelectionColors: TextSelectionColors
+): TextFieldColors {
+    val theme = MaterialTheme.colorScheme
+    return TextFieldDefaults.colors(
+        focusedTextColor = theme.onSurface,
+        unfocusedTextColor = theme.onSurface,
+        focusedLabelColor = theme.onSurface,
+        unfocusedLabelColor = theme.onSurface,
+        focusedContainerColor = inputBackgroundColor,
+        unfocusedContainerColor = inputBackgroundColor,
+        focusedIndicatorColor = theme.onSurface,
+        unfocusedIndicatorColor = theme.surface,
+        cursorColor = theme.secondary,
+        selectionColors = customSelectionColors,
+        focusedPlaceholderColor = theme.primary,
+        unfocusedPlaceholderColor = theme.onSurface,
+    )
 }

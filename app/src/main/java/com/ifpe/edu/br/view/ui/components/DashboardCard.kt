@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -53,7 +54,6 @@ import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
 import com.ifpe.edu.br.model.util.ResultWrapper
 import com.ifpe.edu.br.view.ui.screens.getTimeWrapper
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 
 
@@ -73,7 +73,10 @@ fun DashboardCard(
                 devicesIds = dashboard.devicesIds,
                 aggStrategy = AggStrategy.AVG,
                 aggKey = activeFilters.telemetryKey,
-                timeIntervalWrapper = getTimeWrapper(System.currentTimeMillis(), activeFilters.interval)
+                timeIntervalWrapper = getTimeWrapper(
+                    System.currentTimeMillis(),
+                    activeFilters.interval
+                )
             )
         )
     }
@@ -99,7 +102,8 @@ fun DashboardCard(
                         chartType = activeFilters.chartType
                     )
                     if (aggregatedDataState is ResultWrapper.Success) {
-                        val wrapper = (aggregatedDataState as ResultWrapper.Success).value.chartDataWrapper
+                        val wrapper =
+                            (aggregatedDataState as ResultWrapper.Success).value.chartDataWrapper
                         StatisticsRow(
                             dataWrapper = ChartDataWrapper(wrapper.label, wrapper.entries),
                             telemetryKey = activeFilters.telemetryKey
@@ -144,19 +148,19 @@ fun ChartQueryDetails(filters: DashboardFilters) {
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(){
+        Column() {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "Intervalo:",
                     fontSize = 12.sp
                 )
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "${intervalLabels[filters.interval]}",
                     fontSize = 10.sp
                 )
@@ -167,12 +171,12 @@ fun ChartQueryDetails(filters: DashboardFilters) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "Dado:",
                     fontSize = 12.sp
                 )
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "${telemetryDisplayNames[filters.telemetryKey]}",
                     fontSize = 10.sp
                 )
@@ -189,7 +193,7 @@ fun MainChart(
     paddingTop: Dp = 0.dp,
     paddingBottom: Dp = 0.dp,
     chartType: ChartType = ChartType.BAR
-){
+) {
     CustomCard(
         paddingStart = paddingStart,
         paddingEnd = paddingEnd,
@@ -246,7 +250,7 @@ private fun EmptyStateChart() {
             layouts = listOf {
                 Spacer(modifier = Modifier.padding(vertical = 10.dp))
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "Não há dados a exibir",
                     fontSize = 20.sp
                 )
@@ -272,11 +276,13 @@ fun FilterBottomSheet(
         sheetState = sheetState,
         containerColor = Color.White
     ) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+        Column(modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()) {
             CustomText(
                 text = sheetTitle,
                 fontSize = 20.sp,
-                color = tb_primary_light
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.padding(vertical = 8.dp))
@@ -288,7 +294,7 @@ fun FilterBottomSheet(
 
             ChartTypeSelector(
                 chartType = draftFilters.chartType,
-                onTypeSelected = {draftFilters = draftFilters.copy(chartType = it)}
+                onTypeSelected = { draftFilters = draftFilters.copy(chartType = it) }
             )
 
             KeySelector(
@@ -318,11 +324,11 @@ private fun HeaderWithSettings(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CustomText(color = tb_primary_light, text = title, fontSize = 20.sp)
+        CustomText(color = MaterialTheme.colorScheme.primary, text = title, fontSize = 20.sp)
 
         CustomIconButton(
             iconResId = com.ifpe.edu.br.R.drawable.filter,
-            iconTint = tb_primary_light,
+            iconTint = MaterialTheme.colorScheme.primary,
             backgroundColor = Color.Transparent,
             onClick = onSettingsClick,
             contentDescription = "filtering button",
@@ -347,7 +353,7 @@ fun StatisticsRow(
 
     if (stats == null) return
     val (max, min, avg) = stats
-    val unit = when(telemetryKey) {
+    val unit = when (telemetryKey) {
         TelemetryKey.POWER -> "W"
         TelemetryKey.VOLTAGE -> "V"
         TelemetryKey.CURRENT -> "A"
@@ -364,9 +370,24 @@ fun StatisticsRow(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StatItem(label = "Mínimo", value = min.toDouble(), unit = unit, color = Color(0xFF4CAF50)) // green
-                StatItem(label = "Média", value = avg, unit = unit, color = tb_primary_light)
-                StatItem(label = "Máximo", value = max.toDouble(), unit = unit, color = Color(0xFFE91E63)) // red
+                StatItem(
+                    label = "Mínimo",
+                    value = min.toDouble(),
+                    unit = unit,
+                    color = Color(0xFF4CAF50)
+                ) // green
+                StatItem(
+                    label = "Média",
+                    value = avg,
+                    unit = unit,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                StatItem(
+                    label = "Máximo",
+                    value = max.toDouble(),
+                    unit = unit,
+                    color = Color(0xFFE91E63)
+                ) // red
             }
         }
     )
@@ -385,7 +406,7 @@ fun StatItem(
         CustomText(
             text = label,
             fontSize = 16.sp,
-            color = tb_primary_light.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
             fontWeight = FontWeight.Normal
         )
         CustomText(

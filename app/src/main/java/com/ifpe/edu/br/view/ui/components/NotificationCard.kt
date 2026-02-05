@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,9 +27,6 @@ import com.ifpe.edu.br.common.components.CustomCard
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
-import com.ifpe.edu.br.view.ui.theme.app_default_solid_background_light
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
-import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -56,11 +54,13 @@ fun NotificationCard(
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(all = 0.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(all = 0.dp),
                     horizontalArrangement = Arrangement.Start
                 ) {
                     CustomText(
-                        color = tb_secondary_light,
+                        color = MaterialTheme.colorScheme.secondary,
                         alignment = TextAlign.Left,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
@@ -68,12 +68,14 @@ fun NotificationCard(
                     )
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(all = 0.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(all = 0.dp),
                     horizontalArrangement = Arrangement.Start
                 ) {
                     GetPaddingStart()
                     CustomText(
-                        color = tb_primary_light,
+                        color = MaterialTheme.colorScheme.primary,
                         alignment = TextAlign.Left,
                         fontSize = 22.sp,
                         text = item.subject
@@ -86,7 +88,7 @@ fun NotificationCard(
                     horizontalArrangement = Arrangement.Start
                 ) {
                     CustomText(
-                        color = tb_secondary_light,
+                        color = MaterialTheme.colorScheme.secondary,
                         alignment = TextAlign.Left,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
@@ -99,7 +101,7 @@ fun NotificationCard(
                 ) {
                     GetPaddingStart()
                     CustomText(
-                        color = tb_primary_light,
+                        color = MaterialTheme.colorScheme.primary,
                         alignment = TextAlign.Left,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Normal,
@@ -115,7 +117,7 @@ fun NotificationCard(
                 ) {
                     Column {
                         CustomText(
-                            color = tb_secondary_light,
+                            color = MaterialTheme.colorScheme.secondary,
                             alignment = TextAlign.Left,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal,
@@ -127,7 +129,7 @@ fun NotificationCard(
                         ) {
                             GetPaddingStart()
                             CustomText(
-                                color = tb_primary_light,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 22.sp,
                                 alignment = TextAlign.Right,
                                 fontWeight = FontWeight.Normal,
@@ -137,7 +139,7 @@ fun NotificationCard(
                     }
                     Column {
                         CustomText(
-                            color = tb_secondary_light,
+                            color = MaterialTheme.colorScheme.secondary,
                             alignment = TextAlign.Left,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal,
@@ -150,7 +152,7 @@ fun NotificationCard(
                         ) {
                             GetPaddingStart()
                             CustomText(
-                                color = tb_primary_light,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 22.sp,
                                 alignment = TextAlign.Right,
                                 fontWeight = FontWeight.Normal,
@@ -172,7 +174,7 @@ fun NotificationCard(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             CustomText(
-                                color = tb_secondary_light,
+                                color = MaterialTheme.colorScheme.secondary,
                                 alignment = TextAlign.Left,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Normal,
@@ -184,7 +186,7 @@ fun NotificationCard(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             CustomText(
-                                color = tb_primary_light,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 20.sp,
                                 alignment = TextAlign.Right,
                                 fontWeight = FontWeight.Thin,
@@ -207,7 +209,7 @@ private fun GetDivider() {
 }
 
 @Composable
-private fun GetPaddingStart(){
+private fun GetPaddingStart() {
     Spacer(modifier = Modifier.height(4.dp))
 }
 
@@ -216,7 +218,7 @@ private fun getCardColor(isNew: String): Color {
     return if (isNew == "SENT") {
         Color.White
     } else {
-        app_default_solid_background_light
+        MaterialTheme.colorScheme.primaryContainer
     }
 }
 

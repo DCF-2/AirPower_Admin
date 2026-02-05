@@ -1,19 +1,15 @@
 package com.ifpe.edu.br.common.components
 
-import android.provider.SyncStateContract.Constants
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,13 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ifpe.edu.br.common.CommonConstants
 import com.ifpe.edu.br.common.R
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.common.ui.theme.White
 
 
@@ -43,6 +39,7 @@ fun CustomProgressDialog(
     modifier: Modifier = Modifier.wrapContentWidth(),
     message: String = "Aguarde",
     textColor: Color = MaterialTheme.colorScheme.primary,
+    fontStyle: TextStyle = LocalTextStyle.current,
     indicatorColor: Color = MaterialTheme.colorScheme.secondary,
     customBackground: @Composable (modifier: Modifier) -> Unit
 ) {
@@ -65,7 +62,8 @@ fun CustomProgressDialog(
             Spacer(modifier = Modifier.padding(vertical = 10.dp))
             CustomText(
                 text = message,
-                color = textColor
+                color = textColor,
+                fontStyle = fontStyle
             )
         })
     }
@@ -77,6 +75,7 @@ fun FailureDialog(
     iconSize: Dp = 110.dp,
     text: String = "Um erro ocorreu",
     textColor: Color = MaterialTheme.colorScheme.primary,
+    textStyle: TextStyle = LocalTextStyle.current,
     @DrawableRes drawableResId: Int = R.drawable.generic_error,
     retryCallback: () -> Unit,
     customBackground: @Composable (modifier: Modifier) -> Unit
@@ -105,9 +104,8 @@ fun FailureDialog(
                 CustomText(
                     text = text,
                     alignment = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = textColor
+                    color = textColor,
+                    fontStyle = textStyle
                 )
 
                 Spacer(modifier = Modifier.padding(vertical = 40.dp))
@@ -115,7 +113,7 @@ fun FailureDialog(
                 CustomText(
                     text = stringResource(id = R.string.connection_failure_retry),
                     alignment = TextAlign.Center,
-                    fontSize = 18.sp,
+                    fontStyle = AirPowerTheme.typography.displayMedium,
                     color = textColor
                 )
             })

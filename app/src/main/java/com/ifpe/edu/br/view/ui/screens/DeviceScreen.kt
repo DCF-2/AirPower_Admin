@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,7 +22,6 @@ import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.TextTitle
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceSummary
 import com.ifpe.edu.br.view.ui.components.DeviceCard
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import java.util.UUID
 
@@ -45,7 +45,7 @@ fun DeviceScreen(
                 alignmentStrategy = CommonConstants.Ui.ALIGNMENT_CENTER,
                 layouts = listOf {
                     TextTitle(
-                        textColor = tb_primary_light,
+                        textColor = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center,
                         message = "Nenhum dispositivo encontrado.\nVerifique sua conexão ou adicione novos dispositivos."
                     )

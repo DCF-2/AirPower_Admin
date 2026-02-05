@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,9 +61,6 @@ import com.ifpe.edu.br.view.ui.components.AlarmCardInfo
 import com.ifpe.edu.br.view.ui.components.CardInfo
 import com.ifpe.edu.br.view.ui.components.EmptyStateCard
 import com.ifpe.edu.br.view.ui.components.LoadingCard
-import com.ifpe.edu.br.view.ui.theme.app_default_solid_background_light
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
-import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import java.time.DayOfWeek
 import java.time.Instant
@@ -145,7 +143,7 @@ fun SummaryCardCardBoard(
                 horizontalArrangement = Arrangement.Start
             ) {
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "Staus dos dispositivos",
                     fontSize = 20.sp
                 )
@@ -191,7 +189,7 @@ private fun AlarmsSummaryCardCardBoard(
                 horizontalArrangement = Arrangement.Start
             ) {
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "Meus alarmes",
                     fontSize = 20.sp
                 )
@@ -222,7 +220,7 @@ private fun AlarmsSummaryCardCardBoard(
                                 Toast.LENGTH_SHORT
                             ).show()
                         },
-                        color = tb_primary_light,
+                        color = MaterialTheme.colorScheme.primary,
                         text = "Detalhes",
                         fontSize = 12.sp
                     )
@@ -259,7 +257,7 @@ fun DevicesConsumptionSummaryCardBoard(
                                 horizontalArrangement = Arrangement.Start
                             ) {
                                 CustomText(
-                                    color = tb_primary_light,
+                                    color = MaterialTheme.colorScheme.primary,
                                     text = cardLabel,
                                     fontSize = 20.sp
                                 )
@@ -278,7 +276,7 @@ fun DevicesConsumptionSummaryCardBoard(
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     },
-                                    color = tb_primary_light,
+                                    color = MaterialTheme.colorScheme.primary,
                                     text = "Detalhes",
                                     fontSize = 12.sp
                                 )
@@ -348,8 +346,8 @@ private fun SummaryCard(
     label: String,
     data: String,
     onClick: () -> Unit,
-    backgroundColor: Color = app_default_solid_background_light,
-    textColor: Color = tb_primary_light,
+    backgroundColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    textColor: Color = MaterialTheme.colorScheme.primary,
     fontWeight: FontWeight = FontWeight.Light
 ) {
     CustomCard(
@@ -393,7 +391,7 @@ private fun SummaryCard(
                                     alignment = TextAlign.Center,
                                     fontWeight = fontWeight,
                                     fontSize = 12.sp,
-                                    color = tb_secondary_light,
+                                    color = MaterialTheme.colorScheme.secondary,
                                     modifier = Modifier
                                         .wrapContentWidth()
                                         .padding(all = 0.dp)
@@ -444,7 +442,7 @@ private fun HomeScreenAlarmGrid(
             AlarmCardInfo(
                 alarmCardInfo = deviceItem,
                 onClick = onClick,
-                backgroundColor = app_default_solid_background_light
+                backgroundColor = MaterialTheme.colorScheme.primaryContainer
             )
         }
     }
@@ -477,7 +475,7 @@ private fun DevicesStatusGrid(
                     label = deviceItem.label,
                     value = deviceItem.occurrence.toString(),
                     onClick = onClick,
-                    backgroundColor = app_default_solid_background_light
+                    backgroundColor = MaterialTheme.colorScheme.primaryContainer
                 )
             }
         }
@@ -496,7 +494,7 @@ private fun DevicesStatusGrid(
                         Toast.LENGTH_SHORT
                     ).show()
                 },
-                color = tb_primary_light,
+                color = MaterialTheme.colorScheme.primary,
                 text = "Detalhes",
                 fontSize = 12.sp
             )

@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -32,7 +33,6 @@ import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
 import com.ifpe.edu.br.view.ui.components.NotificationCard
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 
 /*
@@ -82,7 +82,7 @@ fun EmptyStateNotificationCard() {
             layouts = listOf {
                 Spacer(modifier = Modifier.padding(vertical = 65.dp))
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "Você não possui notificações",
                     fontSize = 20.sp
                 )

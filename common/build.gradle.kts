@@ -48,6 +48,7 @@ dependencies {
     implementation (libs.androidx.material.icons.extended)
 
     // Compose
+    api("androidx.core:core-splashscreen:1.2.0")
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
