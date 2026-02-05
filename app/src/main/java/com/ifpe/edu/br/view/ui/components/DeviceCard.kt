@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,10 +35,7 @@ import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.ImageIcon
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
-import com.ifpe.edu.br.model.repository.model.DeviceCardModel
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceSummary
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
-import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
 import java.util.UUID
 
 @Composable
@@ -78,7 +76,7 @@ fun DeviceCard(
                                 alignment = TextAlign.Center,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
-                                color = tb_primary_light,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.wrapContentWidth()
                             )
                         }
@@ -112,6 +110,6 @@ fun getStatusColor(status: String): Color {
     return when (status.lowercase()) {
         "online" -> if (isDark) Color(0xFF66BB6A) else Color(0xFF388E3C)
         "offline" -> if (isDark) Color(0xFFEF5350) else Color(0xFFD32F2F)
-        else -> tb_primary_light
+        else -> MaterialTheme.colorScheme.primary
     }
 }

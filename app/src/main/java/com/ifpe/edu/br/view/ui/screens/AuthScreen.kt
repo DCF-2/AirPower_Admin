@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -108,7 +109,7 @@ fun AuthScreen(
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
-                    ){
+                    ) {
                         isSelectionHandlerFocused = false
                     }
                     .background(cardColor), // background card color
@@ -142,10 +143,11 @@ fun AuthScreen(
                         val inputBackgroundColor = lerp(
                             cardColor,
                             MaterialTheme.colorScheme.onPrimary,
-                            0.05f)
+                            0.05f
+                        )
 
                         Spacer(modifier = Modifier.padding(vertical = 20.dp))
-                        
+
                         val customSelectionColors = remember(isSelectionHandlerFocused) {
                             TextSelectionColors(
                                 handleColor = if (isSelectionHandlerFocused) theme.secondary
@@ -156,7 +158,7 @@ fun AuthScreen(
 
                         CustomInputText(
                             value = login,
-                            onFocusChanged = {focused -> isSelectionHandlerFocused = focused },
+                            onFocusChanged = { focused -> isSelectionHandlerFocused = focused },
                             onValueChange = { login = it },
                             label = "Email",
                             labelColor = theme.onPrimary,
@@ -164,18 +166,10 @@ fun AuthScreen(
                             placeholderFontStyle = AirPowerTheme.typography.button,
                             placeholder = "Digite seu email",
                             placeHolderColor = theme.onPrimary,
-                            inputFieldColors = TextFieldDefaults.colors(
-                                focusedTextColor = theme.onPrimary,
-                                unfocusedTextColor = theme.onPrimary,
-                                focusedLabelColor = theme.onPrimary,
-                                unfocusedLabelColor = theme.onPrimary,
-                                focusedContainerColor = inputBackgroundColor,
-                                unfocusedPlaceholderColor = cardColor,
-                                unfocusedContainerColor = inputBackgroundColor,
-                                focusedIndicatorColor = cardColor,
-                                unfocusedIndicatorColor = cardColor,
-                                selectionColors = customSelectionColors,
-                                cursorColor = theme.secondary
+                            inputFieldColors = getInputColors(
+                                inputBackgroundColor,
+                                customSelectionColors,
+                                cardColor
                             ),
                             modifier = Modifier
                         )
@@ -183,7 +177,7 @@ fun AuthScreen(
                         CustomInputText(
                             value = password,
                             onValueChange = { password = it },
-                            onFocusChanged = {focused -> isSelectionHandlerFocused = focused },
+                            onFocusChanged = { focused -> isSelectionHandlerFocused = focused },
                             label = "Senha",
                             labelColor = theme.onPrimary,
                             placeholder = "Digite sua senha",
@@ -191,19 +185,10 @@ fun AuthScreen(
                             isPassword = true,
                             labelFontStyle = AirPowerTheme.typography.bodySmall,
                             placeholderFontStyle = AirPowerTheme.typography.button,
-                            inputFieldColors = TextFieldDefaults.colors(
-                                focusedTextColor = theme.onPrimary,
-                                unfocusedTextColor = theme.onPrimary,
-                                focusedLabelColor = theme.onPrimary,
-                                unfocusedLabelColor = theme.onPrimary,
-                                focusedContainerColor = inputBackgroundColor,
-                                unfocusedContainerColor = inputBackgroundColor,
-                                unfocusedPlaceholderColor = theme.onPrimary,
-                                focusedPlaceholderColor = theme.onPrimary,
-                                focusedIndicatorColor = cardColor,
-                                unfocusedIndicatorColor = cardColor,
-                                selectionColors = customSelectionColors,
-                                cursorColor = theme.secondary
+                            inputFieldColors = getInputColors(
+                                inputBackgroundColor,
+                                customSelectionColors,
+                                cardColor
                             ),
                             modifier = Modifier,
                             iconColor = White
@@ -230,7 +215,8 @@ fun AuthScreen(
                                 )
                             },
                             modifier = Modifier
-                                .fillMaxWidth().padding(horizontal = 3.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 3.dp)
                         )
 
                         Spacer(modifier = Modifier.padding(vertical = 15.dp))
@@ -287,8 +273,11 @@ fun AuthScreen(
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
                     }
-                ) { CustomFullScreenGradientBackground(
-                    listColor = listOf(theme.surface, theme.surface.copy(alpha = 0.6f))) }
+                ) {
+                    CustomFullScreenGradientBackground(
+                        listColor = listOf(theme.surface, theme.surface.copy(alpha = 0.6f))
+                    )
+                }
             }
         }
 
@@ -310,8 +299,12 @@ fun AuthScreen(
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
                     }
-                ) { modifier -> CustomFullScreenGradientBackground(modifier,
-                    listOf(theme.surface, theme.surface.copy(alpha = 0.6f))) }
+                ) { modifier ->
+                    CustomFullScreenGradientBackground(
+                        modifier,
+                        listOf(theme.surface, theme.surface.copy(alpha = 0.6f))
+                    )
+                }
             }
         }
 
@@ -333,8 +326,12 @@ fun AuthScreen(
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
                     }
-                ) { modifier -> CustomFullScreenGradientBackground(modifier,
-                    listOf(theme.surface, theme.surface.copy(alpha = 0.6f))) }
+                ) { modifier ->
+                    CustomFullScreenGradientBackground(
+                        modifier,
+                        listOf(theme.surface, theme.surface.copy(alpha = 0.6f))
+                    )
+                }
             }
         }
 
@@ -351,8 +348,10 @@ fun AuthScreen(
                     textColor = theme.onSurface,
                     fontStyle = AirPowerTheme.typography.displayMedium,
                 ) { modifier ->
-                    CustomFullScreenGradientBackground(modifier,
-                        listOf(theme.surface, theme.surface.copy(alpha = 0.6f)))
+                    CustomFullScreenGradientBackground(
+                        modifier,
+                        listOf(theme.surface, theme.surface.copy(alpha = 0.6f))
+                    )
                 }
             }
         }
@@ -367,4 +366,26 @@ fun AuthScreen(
             componentActivity.finish()
         }
     }
+}
+
+@Composable
+private fun getInputColors(
+    inputBackgroundColor: Color,
+    customSelectionColors: TextSelectionColors,
+    cardColor: Color
+): TextFieldColors {
+    val theme = MaterialTheme.colorScheme
+    return TextFieldDefaults.colors(
+        focusedTextColor = theme.onPrimary,
+        unfocusedTextColor = theme.onPrimary,
+        focusedLabelColor = theme.onPrimary,
+        unfocusedLabelColor = theme.onPrimary,
+        focusedContainerColor = inputBackgroundColor,
+        unfocusedPlaceholderColor = cardColor,
+        unfocusedContainerColor = inputBackgroundColor,
+        focusedIndicatorColor = cardColor,
+        unfocusedIndicatorColor = cardColor,
+        selectionColors = customSelectionColors,
+        cursorColor = theme.secondary
+    )
 }

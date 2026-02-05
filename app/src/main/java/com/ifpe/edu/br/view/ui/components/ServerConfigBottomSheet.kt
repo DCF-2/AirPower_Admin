@@ -21,6 +21,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -30,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -67,7 +69,9 @@ fun ServerConfigBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 15.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 15.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -97,19 +101,9 @@ fun ServerConfigBottomSheet(
                 labelFontStyle = AirPowerTheme.typography.bodySmall,
                 placeholderFontStyle = AirPowerTheme.typography.button,
                 placeholder = "Digite o endereço IP e porta",
-                inputFieldColors = TextFieldDefaults.colors(
-                    focusedTextColor = theme.onSurface,
-                    unfocusedTextColor = theme.onSurface,
-                    focusedLabelColor = theme.onSurface,
-                    unfocusedLabelColor = theme.onSurface,
-                    focusedContainerColor = inputBackgroundColor,
-                    unfocusedContainerColor = inputBackgroundColor,
-                    focusedIndicatorColor = theme.onSurface,
-                    unfocusedIndicatorColor = theme.surface,
-                    cursorColor = theme.secondary,
-                    selectionColors = customSelectionColors,
-                    focusedPlaceholderColor = theme.primary,
-                    unfocusedPlaceholderColor = theme.onSurface,
+                inputFieldColors = getCustomInputTextColors(
+                    inputBackgroundColor,
+                    customSelectionColors
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -123,19 +117,9 @@ fun ServerConfigBottomSheet(
                 placeholderFontStyle = AirPowerTheme.typography.button,
                 label = "Endereço VPN",
                 placeholder = "Digite o endereço IP e porta",
-                inputFieldColors = TextFieldDefaults.colors(
-                    focusedTextColor = theme.onSurface,
-                    unfocusedTextColor = theme.onSurface,
-                    focusedLabelColor = theme.onSurface,
-                    unfocusedLabelColor = theme.onSurface,
-                    focusedContainerColor = inputBackgroundColor,
-                    unfocusedContainerColor = inputBackgroundColor,
-                    focusedIndicatorColor = theme.onSurface,
-                    unfocusedIndicatorColor = theme.surface,
-                    cursorColor = theme.secondary,
-                    selectionColors = customSelectionColors,
-                    focusedPlaceholderColor = theme.primary,
-                    unfocusedPlaceholderColor = theme.onSurface,
+                inputFieldColors = getCustomInputTextColors(
+                    inputBackgroundColor,
+                    customSelectionColors
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -187,4 +171,26 @@ fun ServerConfigBottomSheet(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+@Composable
+private fun getCustomInputTextColors(
+    inputBackgroundColor: Color,
+    customSelectionColors: TextSelectionColors
+): TextFieldColors {
+    val theme = MaterialTheme.colorScheme
+    return TextFieldDefaults.colors(
+        focusedTextColor = theme.onSurface,
+        unfocusedTextColor = theme.onSurface,
+        focusedLabelColor = theme.onSurface,
+        unfocusedLabelColor = theme.onSurface,
+        focusedContainerColor = inputBackgroundColor,
+        unfocusedContainerColor = inputBackgroundColor,
+        focusedIndicatorColor = theme.onSurface,
+        unfocusedIndicatorColor = theme.surface,
+        cursorColor = theme.secondary,
+        selectionColors = customSelectionColors,
+        focusedPlaceholderColor = theme.primary,
+        unfocusedPlaceholderColor = theme.onSurface,
+    )
 }

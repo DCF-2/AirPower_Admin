@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import com.ifpe.edu.br.model.repository.model.ChartType
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 
 private val intervalLabels = mapOf(
     TimeInterval.DAY to "Hoje",
@@ -60,7 +59,7 @@ fun TimeIntervalSelector(
                 value = intervalLabels[selectedInterval] ?: selectedInterval.name,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Período de Consumo", color = tb_primary_light) },
+                label = { Text("Período de Consumo", color = MaterialTheme.colorScheme.primary) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = filterSelectorColors(),
                 modifier = Modifier
@@ -100,8 +99,7 @@ fun ChartTypeSelector(
     chartType: ChartType,
     onTypeSelected: (ChartType) -> Unit,
     modifier: Modifier = Modifier
-)
-{
+) {
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.padding(16.dp)) {
@@ -113,7 +111,7 @@ fun ChartTypeSelector(
                 value = chartTypeLabels[chartType] ?: chartType.name,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Estilo do gráfico", color = tb_primary_light) },
+                label = { Text("Estilo do gráfico", color = MaterialTheme.colorScheme.primary) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = filterSelectorColors(),
                 modifier = Modifier
@@ -154,8 +152,7 @@ fun KeySelector(
     telemetryKey: TelemetryKey,
     onTelemetryKeyChange: (TelemetryKey) -> Unit,
     modifier: Modifier = Modifier
-)
-{
+) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = modifier.padding(16.dp)) {
         ExposedDropdownMenuBox(
@@ -166,7 +163,7 @@ fun KeySelector(
                 value = telemetryDisplayNames[telemetryKey] ?: telemetryKey.name,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Tipo de dado", color = tb_primary_light) },
+                label = { Text("Tipo de dado", color = MaterialTheme.colorScheme.primary) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = filterSelectorColors(),
                 modifier = Modifier
@@ -218,7 +215,7 @@ fun CustomFullScreenGradientBackground(
 @Composable
 private fun filterSelectorColors(): TextFieldColors = TextFieldDefaults.colors(
     focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-    unfocusedTextColor = tb_primary_light,
+    unfocusedTextColor = MaterialTheme.colorScheme.primary,
     focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
     unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
     focusedContainerColor = MaterialTheme.colorScheme.onSecondaryContainer,

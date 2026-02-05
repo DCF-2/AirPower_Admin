@@ -8,12 +8,10 @@ package com.ifpe.edu.br.view.ui.screens
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -33,17 +31,12 @@ import com.ifpe.edu.br.R
 import com.ifpe.edu.br.common.CommonConstants
 import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.FailureDialog
-import com.ifpe.edu.br.common.components.GradientBackground
 import com.ifpe.edu.br.common.components.RoundedImageIcon
 import com.ifpe.edu.br.common.contracts.UIState
-import com.ifpe.edu.br.common.ui.theme.defaultBackgroundGradientDark
-import com.ifpe.edu.br.common.ui.theme.defaultBackgroundGradientLight
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.MainActivity
 import com.ifpe.edu.br.view.ui.components.CustomFullScreenGradientBackground
-import com.ifpe.edu.br.view.ui.theme.DefaultTransparentGradient
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import kotlinx.coroutines.delay
 
@@ -59,7 +52,8 @@ fun SplashScreen(
 
     val theme = MaterialTheme.colorScheme
     CustomFullScreenGradientBackground(
-        listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f)))
+        listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f))
+    )
 
     CustomColumn(
         modifier = Modifier
@@ -114,12 +108,18 @@ fun ExpiredSessionWarningScreen(
             drawableResId = R.drawable.auth_issue,
             iconSize = 150.dp,
             text = "A sessão expirou, faça login novamente",
-            textColor = tb_primary_light,
+            textColor = MaterialTheme.colorScheme.primary,
             retryCallback = {
                 viewModel.resetUIState(sessionStateKey)
                 navigateAuthScreen(navController)
             }
-        ) { DefaultTransparentGradient() }
+        ) {
+            val theme = MaterialTheme.colorScheme
+            CustomFullScreenGradientBackground(
+                modifier = it,
+                listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f))
+            )
+        }
     }
 }
 

@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,8 +24,6 @@ import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.ui.screens.ExpiredSessionWarningScreen
 import com.ifpe.edu.br.view.ui.screens.MainScreen
 import com.ifpe.edu.br.common.ui.theme.AirPowerCostumerTheme
-import com.ifpe.edu.br.view.ui.theme.DefaultTransparentGradient
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModelProvider
 
 class MainActivity : ComponentActivity() {
@@ -74,13 +73,13 @@ class MainActivity : ComponentActivity() {
                             drawableResId = R.drawable.auth_issue,
                             iconSize = 150.dp,
                             text = "A sessão expirou, faça login novamente",
-                            textColor = tb_primary_light,
+                            textColor = MaterialTheme.colorScheme.primary,
                             retryCallback = {
                                 viewModel.logout()
                                 viewModel.resetUIState(stateKey)
                                 navigateAuthScreen(navController, this@MainActivity)
                             }
-                        ) { DefaultTransparentGradient() }
+                        ) {  }
                     }
                 } else {
                     MainScreen(

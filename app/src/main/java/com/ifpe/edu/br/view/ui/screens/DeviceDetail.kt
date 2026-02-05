@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,8 +45,6 @@ import com.ifpe.edu.br.model.util.ResultWrapper
 import com.ifpe.edu.br.view.ui.components.AlarmCardInfo
 import com.ifpe.edu.br.view.ui.components.EmptyStateCard
 import com.ifpe.edu.br.view.ui.components.getStatusColor
-import com.ifpe.edu.br.view.ui.theme.app_default_solid_background_light
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import java.util.UUID
 
@@ -121,7 +120,7 @@ private fun AlarmsCard(
                 horizontalArrangement = Arrangement.Start
             ) {
                 CustomText(
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "Alarmes do dispositivo",
                     fontSize = 20.sp
                 )
@@ -152,7 +151,7 @@ private fun AlarmsCard(
                             Toast.LENGTH_SHORT
                         ).show()
                     },
-                    color = tb_primary_light,
+                    color = MaterialTheme.colorScheme.primary,
                     text = "Detalhes",
                     fontSize = 12.sp
                 )
@@ -179,7 +178,7 @@ private fun DeviceConsumptionCard(
                         horizontalArrangement = Arrangement.Start
                     ) {
                         CustomText(
-                            color = tb_primary_light,
+                            color = MaterialTheme.colorScheme.primary,
                             text = "Consumo do dispositivo",
                             fontSize = 20.sp
                         )
@@ -222,7 +221,7 @@ private fun DeviceInfoCard(device: DeviceSummary) {
                         horizontalArrangement = Arrangement.Start
                     ) {
                         CustomText(
-                            color = tb_primary_light,
+                            color = MaterialTheme.colorScheme.primary,
                             text = "Informaçõs do dispositivo",
                             fontSize = 20.sp
                         )
@@ -273,7 +272,7 @@ private fun CardRow(
         horizontalArrangement = Arrangement.Start
     ) {
         CustomText(
-            color = tb_primary_light,
+            color = MaterialTheme.colorScheme.primary,
             text = label
         )
         CustomText(
@@ -316,7 +315,7 @@ private fun DeviceDetailAlarmGrid(
             AlarmCardInfo(
                 alarmCardInfo = deviceItem,
                 onClick = onClick,
-                backgroundColor = app_default_solid_background_light
+                backgroundColor = MaterialTheme.colorScheme.primaryContainer
             )
         }
     }

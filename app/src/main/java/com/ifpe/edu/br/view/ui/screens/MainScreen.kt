@@ -4,12 +4,12 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,11 +43,7 @@ import com.ifpe.edu.br.common.components.GradientBackground
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.AuthActivity
-import com.ifpe.edu.br.view.ui.theme.DefaultTransparentGradient
-import com.ifpe.edu.br.view.ui.theme.appBackgroundGradientDark
-import com.ifpe.edu.br.view.ui.theme.appBackgroundGradientLight
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
-import com.ifpe.edu.br.view.ui.theme.tb_secondary_light
+import com.ifpe.edu.br.view.ui.components.CustomFullScreenGradientBackground
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import java.util.UUID
 
@@ -99,7 +95,7 @@ fun MainScreen(
                             if (shouldShowBottomBar) {
                                 CustomIconButton(
                                     iconResId = R.drawable.notification_icon,
-                                    iconTint = if (hasNotification(notification.value)) tb_secondary_light else tb_primary_light,
+                                    iconTint = if (hasNotification(notification.value)) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
                                     contentDescription = "ícone de notificações",
                                     backgroundColor = Color.Transparent,
                                     onClick = {
@@ -122,7 +118,7 @@ fun MainScreen(
                                 text = title,
                                 fontSize = 30.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = tb_primary_light,
+                                color = MaterialTheme.colorScheme.primary,
                                 alignment = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -132,7 +128,7 @@ fun MainScreen(
                             if (shouldShowBottomBar) {
                                 CustomIconButton(
                                     iconResId = R.drawable.menu_icon,
-                                    iconTint = tb_primary_light,
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     backgroundColor = Color.Transparent,
                                     contentDescription = "Ícone de menu",
                                     onClick = {
@@ -162,9 +158,12 @@ fun MainScreen(
                     }
                 }
             ) { innerPadding ->
-                GradientBackground(
-                    if (isSystemInDarkTheme()) appBackgroundGradientDark
-                    else appBackgroundGradientLight
+                val theme = MaterialTheme.colorScheme
+                CustomFullScreenGradientBackground(
+                    listColor = listOf(
+                        theme.background,
+                        theme.background.copy(alpha = 0.6f)
+                    )
                 )
                 NavHostContainer(
                     navController = navController,
@@ -193,11 +192,17 @@ fun UpdateSessionFailure(
             drawableResId = R.drawable.auth_issue,
             iconSize = 150.dp,
             text = "Sua sessão expirou, por favor faça login novamente",
-            textColor = tb_primary_light,
+            textColor = MaterialTheme.colorScheme.primary,
             retryCallback = {
                 navigateAuthScreen(navController, componentActivity)
             }
-        ) { modifier -> DefaultTransparentGradient(modifier) }
+        ) { modifier ->
+            val theme = MaterialTheme.colorScheme
+            CustomFullScreenGradientBackground(
+                modifier = modifier,
+                listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f))
+            )
+        }
     }
 }
 
@@ -218,11 +223,17 @@ private fun NetworkIssue(
             drawableResId = R.drawable.network_issue,
             iconSize = 150.dp,
             text = "Houve um erro de conexão",
-            textColor = tb_primary_light,
+            textColor = MaterialTheme.colorScheme.primary,
             retryCallback = {
                 navigateAuthScreen(navController, componentActivity)
             }
-        ) { modifier -> DefaultTransparentGradient(modifier) }
+        ) { modifier ->
+            val theme = MaterialTheme.colorScheme
+            CustomFullScreenGradientBackground(
+                modifier = modifier,
+                listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f))
+            )
+        }
     }
 }
 
@@ -244,11 +255,19 @@ fun AuthFailure(
             drawableResId = R.drawable.auth_issue,
             iconSize = 150.dp,
             text = "Credenciais inválidas",
-            textColor = tb_primary_light,
+            textColor = MaterialTheme.colorScheme.primary,
             retryCallback = {
                 navigateAuthScreen(navController, componentActivity)
             }
-        ) { DefaultTransparentGradient() }
+        ) {
+            val theme = MaterialTheme.colorScheme
+            CustomFullScreenGradientBackground(
+                listColor = listOf(
+                    theme.background,
+                    theme.background.copy(alpha = 0.6f)
+                )
+            )
+        }
     }
 }
 
