@@ -79,3 +79,13 @@ val expandedTypography = AppTypography(
 )
 
 val LocalAppTypography = staticCompositionLocalOf { compactTypography }
+
+fun AppTypography.withScale(scaleFactor: Float): AppTypography {
+    return AppTypography(
+        displayLarge = this.displayLarge.copy(fontSize = this.displayLarge.fontSize * scaleFactor),
+        displayMedium = this.displayMedium.copy(fontSize = this.displayMedium.fontSize * scaleFactor),
+        bodyLarge = this.bodyLarge.copy(fontSize = this.bodyLarge.fontSize * scaleFactor),
+        bodySmall = this.bodySmall.copy(fontSize = this.bodySmall.fontSize * scaleFactor),
+        button = this.button.copy(fontSize = this.button.fontSize * scaleFactor)
+    )
+}

@@ -114,16 +114,32 @@ fun AirPowerCostumerTheme(
         expandedTypography
     }
 
-    CompositionLocalProvider(LocalAppDimens provides dimensions,
-        LocalAppTypography provides typography) {
+    val densityScaleFactor = when(windowInfo.screenDensity) {
+        WindowInfo.DensityType.High -> 1.10f
+        WindowInfo.DensityType.Medium -> 1.2f
+        WindowInfo.DensityType.Low -> 0.9f
+    }
+
+    val dimensionScaleFactor = when(windowInfo.screenDensity) {
+        WindowInfo.DensityType.High -> 1.1f
+        else -> 1.0f
+    }
+
+    val finalTypography = typography.withScale(densityScaleFactor)
+    val finalDimensions = dimensions.withScale(dimensionScaleFactor)
+
+    CompositionLocalProvider(
+        LocalAppDimens provides finalDimensions,
+        LocalAppTypography provides finalTypography
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = androidx.compose.material3.Typography(
-                bodyLarge = typography.bodyLarge,
-                titleLarge = typography.displayLarge,
-                labelSmall = typography.bodySmall,
-                labelMedium = typography.bodySmall,
-                labelLarge = typography.bodySmall
+                bodyLarge = finalTypography.bodyLarge,
+                titleLarge = finalTypography.displayLarge,
+                labelSmall = finalTypography.bodySmall,
+                labelMedium = finalTypography.bodySmall,
+                labelLarge = finalTypography.bodySmall
             ),
             content = content
         )

@@ -45,3 +45,16 @@ val expandedDimens = AppDimens(
 )
 
 val LocalAppDimens = compositionLocalOf { compactDimens }
+
+fun AppDimens.withScale(scaleFactor: Float): AppDimens {
+    return AppDimens(
+        paddingSmall = this.paddingSmall * scaleFactor,
+        paddingMedium = this.paddingMedium * scaleFactor,
+        paddingLarge = this.paddingLarge * scaleFactor,
+        iconSizeSmall = this.iconSizeSmall * scaleFactor,
+        iconSizeMedium = this.iconSizeMedium * scaleFactor,
+        iconSizeLarge = this.iconSizeLarge * scaleFactor,
+        cardCornerRadius = this.cardCornerRadius,
+        chartHeight = this.chartHeight * scaleFactor
+    )
+}

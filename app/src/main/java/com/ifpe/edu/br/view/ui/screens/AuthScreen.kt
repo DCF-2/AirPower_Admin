@@ -220,7 +220,6 @@ fun AuthScreen(
                             ),
                             fontStyle = AirPowerTheme.typography.button,
                             text = "Login",
-                            fontSize = 15.sp,
                             onClick = {
                                 isSelectionHandlerFocused = false
                                 viewModel.initSession(
@@ -245,7 +244,6 @@ fun AuthScreen(
                             ),
                             fontStyle = AirPowerTheme.typography.button,
                             text = "Configurações de rede",
-                            fontSize = 15.sp,
                             onClick = {
                                 isSelectionHandlerFocused = false
                                 showServerConfig = true

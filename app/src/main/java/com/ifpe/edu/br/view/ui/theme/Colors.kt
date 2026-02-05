@@ -43,7 +43,7 @@ val tertiaryDarkAppColor = Color(0xFFFF5722)
 val onTertiaryDarkAppColor = Color(0xFFFF5722)
 val backgroundDarkAppColor = Color(0xFF313136)
 val onBackgroundDarkAppColor = Color(0xFFCBD0D5)
-val surfaceDarkAppColor = Color(0xE21F1F1F)
+val surfaceDarkAppColor = Color(0xE91F1F1F)
 val onSurfaceDarkAppColor = Color(0xFFD7DCEA)
 
 // -_------------------------_------------------------_--------_
