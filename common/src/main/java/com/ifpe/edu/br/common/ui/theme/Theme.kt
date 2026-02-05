@@ -108,10 +108,23 @@ fun AirPowerCostumerTheme(
         expandedDimens
     }
 
-    CompositionLocalProvider(LocalAppDimens provides dimensions) {
+    val typography = if (windowInfo.screenWidthInfo is WindowInfo.WindowType.Compact) {
+        compactTypography
+    } else {
+        expandedTypography
+    }
+
+    CompositionLocalProvider(LocalAppDimens provides dimensions,
+        LocalAppTypography provides typography) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = Typography,
+            typography = androidx.compose.material3.Typography(
+                bodyLarge = typography.bodyLarge,
+                titleLarge = typography.displayLarge,
+                labelSmall = typography.bodySmall,
+                labelMedium = typography.bodySmall,
+                labelLarge = typography.bodySmall
+            ),
             content = content
         )
     }
@@ -121,4 +134,8 @@ object AirPowerTheme {
     val dimens: AppDimens
         @Composable
         get() = LocalAppDimens.current
+
+    val typography: AppTypography
+        @Composable
+        get() = LocalAppTypography.current
 }

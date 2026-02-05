@@ -55,6 +55,7 @@ import com.ifpe.edu.br.common.components.CustomProgressDialog
 import com.ifpe.edu.br.common.components.FailureDialog
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.common.contracts.UIState
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.common.ui.theme.White
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.Constants
@@ -158,19 +159,23 @@ fun AuthScreen(
                             onFocusChanged = {focused -> isSelectionHandlerFocused = focused },
                             onValueChange = { login = it },
                             label = "Email",
+                            labelColor = theme.onPrimary,
+                            labelFontStyle = AirPowerTheme.typography.bodySmall,
+                            placeholderFontStyle = AirPowerTheme.typography.button,
                             placeholder = "Digite seu email",
+                            placeHolderColor = theme.onPrimary,
                             inputFieldColors = TextFieldDefaults.colors(
-                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                focusedTextColor = theme.onPrimary,
+                                unfocusedTextColor = theme.onPrimary,
+                                focusedLabelColor = theme.onPrimary,
+                                unfocusedLabelColor = theme.onPrimary,
                                 focusedContainerColor = inputBackgroundColor,
                                 unfocusedPlaceholderColor = cardColor,
                                 unfocusedContainerColor = inputBackgroundColor,
                                 focusedIndicatorColor = cardColor,
                                 unfocusedIndicatorColor = cardColor,
                                 selectionColors = customSelectionColors,
-                                cursorColor = MaterialTheme.colorScheme.secondary
+                                cursorColor = theme.secondary
                             ),
                             modifier = Modifier
                         )
@@ -180,20 +185,25 @@ fun AuthScreen(
                             onValueChange = { password = it },
                             onFocusChanged = {focused -> isSelectionHandlerFocused = focused },
                             label = "Senha",
+                            labelColor = theme.onPrimary,
                             placeholder = "Digite sua senha",
+                            placeHolderColor = theme.onPrimary,
                             isPassword = true,
+                            labelFontStyle = AirPowerTheme.typography.bodySmall,
+                            placeholderFontStyle = AirPowerTheme.typography.button,
                             inputFieldColors = TextFieldDefaults.colors(
-                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                focusedTextColor = theme.onPrimary,
+                                unfocusedTextColor = theme.onPrimary,
+                                focusedLabelColor = theme.onPrimary,
+                                unfocusedLabelColor = theme.onPrimary,
                                 focusedContainerColor = inputBackgroundColor,
-                                unfocusedPlaceholderColor = cardColor,
                                 unfocusedContainerColor = inputBackgroundColor,
+                                unfocusedPlaceholderColor = theme.onPrimary,
+                                focusedPlaceholderColor = theme.onPrimary,
                                 focusedIndicatorColor = cardColor,
                                 unfocusedIndicatorColor = cardColor,
                                 selectionColors = customSelectionColors,
-                                cursorColor = MaterialTheme.colorScheme.secondary
+                                cursorColor = theme.secondary
                             ),
                             modifier = Modifier,
                             iconColor = White
@@ -208,6 +218,7 @@ fun AuthScreen(
                                 disabledContentColor = MaterialTheme.colorScheme.secondary,
                                 disabledContainerColor = MaterialTheme.colorScheme.onSecondary
                             ),
+                            fontStyle = AirPowerTheme.typography.button,
                             text = "Login",
                             fontSize = 15.sp,
                             onClick = {
@@ -232,6 +243,7 @@ fun AuthScreen(
                                 disabledContentColor = MaterialTheme.colorScheme.primary,
                                 disabledContainerColor = MaterialTheme.colorScheme.primary
                             ),
+                            fontStyle = AirPowerTheme.typography.button,
                             text = "Configurações de rede",
                             fontSize = 15.sp,
                             onClick = {
@@ -273,6 +285,7 @@ fun AuthScreen(
                     iconSize = 150.dp,
                     text = sessionState.value.state,
                     textColor = theme.onSurface,
+                    textStyle = AirPowerTheme.typography.displayLarge,
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
                     }
@@ -294,6 +307,7 @@ fun AuthScreen(
                     drawableResId = R.drawable.generic_error,
                     iconSize = 150.dp,
                     text = "Um erro inesperado ocorreu",
+                    textStyle = AirPowerTheme.typography.displayLarge,
                     textColor = theme.onSurface,
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
@@ -317,6 +331,7 @@ fun AuthScreen(
                     iconSize = 150.dp,
                     text = "Houve um problema de conexão com o servidor",
                     textColor = theme.onSurface,
+                    textStyle = AirPowerTheme.typography.displayLarge,
                     retryCallback = {
                         viewModel.resetUIState(authStateKey)
                     }
@@ -335,7 +350,8 @@ fun AuthScreen(
                         .align(Alignment.Center)
                         .fillMaxSize(),
                     indicatorColor = theme.secondary,
-                    textColor = theme.onSurface
+                    textColor = theme.onSurface,
+                    fontStyle = AirPowerTheme.typography.displayMedium,
                 ) { modifier ->
                     CustomFullScreenGradientBackground(modifier,
                         listOf(theme.surface, theme.surface.copy(alpha = 0.6f)))

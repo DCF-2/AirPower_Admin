@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,7 +18,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -32,19 +30,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ifpe.edu.br.common.components.CustomInputText
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.RectButton
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
-import com.ifpe.edu.br.model.repository.remote.dto.auth.AuthUser
-import com.ifpe.edu.br.view.ui.theme.tb_primary_light
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,13 +73,12 @@ fun ServerConfigBottomSheet(
             ) {
                 CustomText(
                     text = "Configuração de Rede",
-                    fontSize = 20.sp,
-                    color = theme.onSurface,
-                    fontWeight = FontWeight.Bold
+                    fontStyle = AirPowerTheme.typography.displayLarge,
+                    color = theme.onSurface
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.padding(vertical = 20.dp))
 
             val inputBackgroundColor = lerp(
                 MaterialTheme.colorScheme.surface,
@@ -101,6 +94,8 @@ fun ServerConfigBottomSheet(
                 value = localIp,
                 onValueChange = { localIp = it },
                 label = "Endereço Local (Wi-Fi)",
+                labelFontStyle = AirPowerTheme.typography.bodySmall,
+                placeholderFontStyle = AirPowerTheme.typography.button,
                 placeholder = "Digite o endereço IP e porta",
                 inputFieldColors = TextFieldDefaults.colors(
                     focusedTextColor = theme.onSurface,
@@ -108,12 +103,13 @@ fun ServerConfigBottomSheet(
                     focusedLabelColor = theme.onSurface,
                     unfocusedLabelColor = theme.onSurface,
                     focusedContainerColor = inputBackgroundColor,
-                    unfocusedPlaceholderColor = theme.surface,
                     unfocusedContainerColor = inputBackgroundColor,
                     focusedIndicatorColor = theme.onSurface,
                     unfocusedIndicatorColor = theme.surface,
                     cursorColor = theme.secondary,
-                    selectionColors = customSelectionColors
+                    selectionColors = customSelectionColors,
+                    focusedPlaceholderColor = theme.primary,
+                    unfocusedPlaceholderColor = theme.onSurface,
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -123,6 +119,8 @@ fun ServerConfigBottomSheet(
             CustomInputText(
                 value = vpnIp,
                 onValueChange = { vpnIp = it },
+                labelFontStyle = AirPowerTheme.typography.bodySmall,
+                placeholderFontStyle = AirPowerTheme.typography.button,
                 label = "Endereço VPN",
                 placeholder = "Digite o endereço IP e porta",
                 inputFieldColors = TextFieldDefaults.colors(
@@ -131,12 +129,13 @@ fun ServerConfigBottomSheet(
                     focusedLabelColor = theme.onSurface,
                     unfocusedLabelColor = theme.onSurface,
                     focusedContainerColor = inputBackgroundColor,
-                    unfocusedPlaceholderColor = theme.surface,
                     unfocusedContainerColor = inputBackgroundColor,
                     focusedIndicatorColor = theme.onSurface,
                     unfocusedIndicatorColor = theme.surface,
                     cursorColor = theme.secondary,
-                    selectionColors = customSelectionColors
+                    selectionColors = customSelectionColors,
+                    focusedPlaceholderColor = theme.primary,
+                    unfocusedPlaceholderColor = theme.onSurface,
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -150,6 +149,7 @@ fun ServerConfigBottomSheet(
                 Text(
                     text = "Forçar uso do endereço VPN",
                     modifier = Modifier.weight(1f),
+                    style = AirPowerTheme.typography.button,
                     color = theme.onSurface
                 )
                 Switch(
@@ -171,6 +171,7 @@ fun ServerConfigBottomSheet(
                     disabledContentColor = theme.onPrimary,
                     disabledContainerColor = theme.primary
                 ),
+                fontStyle = AirPowerTheme.typography.button,
                 text = "Salvar",
                 fontSize = 15.sp,
                 onClick = {

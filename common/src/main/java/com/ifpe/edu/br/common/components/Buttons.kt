@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -68,6 +70,7 @@ fun RoundedButton(
 fun RectButton(
     text: String,
     onClick: () -> Unit,
+    fontStyle: TextStyle = LocalTextStyle.current,
     fontSize: TextUnit = 20.sp,
     colors: ButtonColors = ButtonColors(
         contentColor = White,
@@ -86,9 +89,9 @@ fun RectButton(
     ) {
         Text(
             text = text,
-            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(vertical = 8.dp),
             fontSize = fontSize,
-            modifier = Modifier.padding(vertical = 8.dp)
+            style = fontStyle
         )
     }
 }
