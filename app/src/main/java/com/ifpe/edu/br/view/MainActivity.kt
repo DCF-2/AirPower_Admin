@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                             drawableResId = R.drawable.auth_issue,
                             iconSize = 150.dp,
                             text = "A sessão expirou, faça login novamente",
-                            textColor = MaterialTheme.colorScheme.primary,
+                            textColor = AirPowerTheme.color.onBackground,
                             retryCallback = {
                                 viewModel.logout()
                                 viewModel.resetUIState(stateKey)

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.ifpe.edu.br.common.components.CustomCard
 import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.CustomText
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.repository.model.HomeScreenAlarmSummaryCard
 
@@ -62,9 +63,8 @@ fun AlarmCardInfo(
                             CustomText(
                                 text = alarmCardInfo.severity,
                                 alignment = TextAlign.Center,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.primary,
+                                fontStyle = AirPowerTheme.typography.bodyLarge,
+                                color = AirPowerTheme.color.onPrimaryContainer,
                                 modifier = Modifier.wrapContentWidth()
                             )
                         }
@@ -126,9 +126,8 @@ fun CardInfo(
                             CustomText(
                                 text = label,
                                 alignment = TextAlign.Center,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.primary,
+                                fontStyle = AirPowerTheme.typography.bodyLarge,
+                                color = AirPowerTheme.color.onPrimaryContainer,
                                 modifier = Modifier.wrapContentWidth()
                             )
                         }

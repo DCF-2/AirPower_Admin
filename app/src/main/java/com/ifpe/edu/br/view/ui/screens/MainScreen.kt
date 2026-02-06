@@ -2,14 +2,12 @@ package com.ifpe.edu.br.view.ui.screens
 
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,11 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -38,12 +33,11 @@ import com.ifpe.edu.br.common.components.CustomIconButton
 import com.ifpe.edu.br.common.components.CustomNavigationBar
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.CustomTopBar
-import com.ifpe.edu.br.common.components.FailureDialog
+import com.ifpe.edu.br.common.components.ImageIcon
 import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.AuthActivity
-import com.ifpe.edu.br.view.ui.components.CustomFullScreenGradientBackground
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import java.util.UUID
 
@@ -84,8 +78,8 @@ fun MainScreen(
                         Screen.Home.route -> "Resumo"
                         Screen.Devices.route -> "Dispositivos"
                         Screen.Dashboards.route -> "Dashboards"
-                        Screen.DeviceDetail.route -> "Detalhes do Dispositivo"
-                        Screen.NotificationCenter.route -> "Centro de Notificações"
+                        Screen.DeviceDetail.route -> "Detalhes"
+                        Screen.NotificationCenter.route -> "Notificações"
                         else -> ""
                     }
 
@@ -103,14 +97,17 @@ fun MainScreen(
                                     }
                                 )
                             } else {
-                                IconButton(onClick = { navController.popBackStack() }) {
-                                    Image(
-                                        painter = painterResource(R.drawable.arrow_back),
-                                        contentDescription = "Voltar"
-                                    )
-                                }
+                                ImageIcon(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clickable(
+                                            onClick = { navController.popBackStack() }
+                                        ),
+                                    description = "device icon",
+                                    iconResId = R.drawable.arrow_back,
+                                    iconTint = AirPowerTheme.color.onPrimaryContainer
+                                )
                             }
-
                         },
 
                         centerContent = {
@@ -165,102 +162,6 @@ fun MainScreen(
             }
         }
     )
-}
-
-@Composable
-fun UpdateSessionFailure(
-    navController: NavHostController,
-    componentActivity: ComponentActivity
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f))
-    ) {
-        FailureDialog(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxSize(),
-            drawableResId = R.drawable.auth_issue,
-            iconSize = 150.dp,
-            text = "Sua sessão expirou, por favor faça login novamente",
-            textColor = MaterialTheme.colorScheme.primary,
-            retryCallback = {
-                navigateAuthScreen(navController, componentActivity)
-            }
-        ) { modifier ->
-            val theme = MaterialTheme.colorScheme
-            CustomFullScreenGradientBackground(
-                modifier = modifier,
-                listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f))
-            )
-        }
-    }
-}
-
-@Composable
-private fun NetworkIssue(
-    navController: NavHostController,
-    componentActivity: ComponentActivity
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f))
-    ) {
-        FailureDialog(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxSize(),
-            drawableResId = R.drawable.network_issue,
-            iconSize = 150.dp,
-            text = "Houve um erro de conexão",
-            textColor = MaterialTheme.colorScheme.primary,
-            retryCallback = {
-                navigateAuthScreen(navController, componentActivity)
-            }
-        ) { modifier ->
-            val theme = MaterialTheme.colorScheme
-            CustomFullScreenGradientBackground(
-                modifier = modifier,
-                listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f))
-            )
-        }
-    }
-}
-
-
-@Composable
-fun AuthFailure(
-    navController: NavHostController,
-    componentActivity: ComponentActivity
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f))
-    ) {
-        FailureDialog(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxSize(),
-            drawableResId = R.drawable.auth_issue,
-            iconSize = 150.dp,
-            text = "Credenciais inválidas",
-            textColor = MaterialTheme.colorScheme.primary,
-            retryCallback = {
-                navigateAuthScreen(navController, componentActivity)
-            }
-        ) {
-            val theme = MaterialTheme.colorScheme
-            CustomFullScreenGradientBackground(
-                listColor = listOf(
-                    theme.background,
-                    theme.background.copy(alpha = 0.6f)
-                )
-            )
-        }
-    }
 }
 
 @Composable

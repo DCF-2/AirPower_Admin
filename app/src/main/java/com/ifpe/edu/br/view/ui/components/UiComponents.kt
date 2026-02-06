@@ -17,8 +17,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -31,91 +31,38 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
-import com.ifpe.edu.br.model.repository.model.ChartType
-import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
-import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
-
-private val intervalLabels = mapOf(
-    TimeInterval.DAY to "Hoje",
-    TimeInterval.WEEK to "Esta Semana",
-    TimeInterval.MONTH to "Este Mês",
-    TimeInterval.YEAR to "Este Ano"
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TimeIntervalSelector(
-    selectedInterval: TimeInterval,
-    onIntervalSelected: (TimeInterval) -> Unit,
-    modifier: Modifier = Modifier
+fun <T> GenericDropdownSelector(
+    items: List<T>,
+    selectedItem: T,
+    onItemSelected: (T) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    itemLabelMapper: (T) -> String = { it.toString() }
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Box(modifier = modifier.padding(16.dp)) {
+    Box(modifier = modifier.padding(AirPowerTheme.dimens.paddingSmall)) {
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
         ) {
             OutlinedTextField(
-                value = intervalLabels[selectedInterval] ?: selectedInterval.name,
+                value = itemLabelMapper(selectedItem),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Período de Consumo", color = MaterialTheme.colorScheme.primary) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = filterSelectorColors(),
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                TimeInterval.entries.forEach { interval ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(text = intervalLabels[interval] ?: interval.name)
-                        },
-                        onClick = {
-                            onIntervalSelected(interval)
-                            expanded = false
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                label = {
+                    CustomText(
+                        text = label,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontStyle = AirPowerTheme.typography.bodySmall
                     )
-                }
-            }
-        }
-    }
-}
-
-private val chartTypeLabels = mapOf(
-    ChartType.BAR to "Gráfico de coluna",
-    ChartType.LINE to "Gráfico de linha"
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ChartTypeSelector(
-    chartType: ChartType,
-    onTypeSelected: (ChartType) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box(modifier = modifier.padding(16.dp)) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = chartTypeLabels[chartType] ?: chartType.name,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Estilo do gráfico", color = MaterialTheme.colorScheme.primary) },
+                },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = filterSelectorColors(),
                 modifier = Modifier
@@ -127,65 +74,25 @@ fun ChartTypeSelector(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                ChartType.entries.forEach { type ->
+                items.forEach { item ->
                     DropdownMenuItem(
                         text = {
-                            Text(text = chartTypeLabels[type] ?: type.name)
+                            CustomText(
+                                text = itemLabelMapper(item),
+                                color = AirPowerTheme.color.onSecondaryContainer,
+                                fontStyle = AirPowerTheme.typography.button
+                            )
                         },
+                        colors = MenuItemColors(
+                            textColor = Color.Red,
+                            leadingIconColor = AirPowerTheme.color.onSecondaryContainer,
+                            trailingIconColor = AirPowerTheme.color.onSecondaryContainer,
+                            disabledTextColor = AirPowerTheme.color.onSecondaryContainer,
+                            disabledLeadingIconColor = AirPowerTheme.color.onSecondaryContainer,
+                            disabledTrailingIconColor = AirPowerTheme.color.onSecondaryContainer,
+                        ),
                         onClick = {
-                            onTypeSelected(type)
-                            expanded = false
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                    )
-                }
-            }
-        }
-    }
-}
-
-private val telemetryDisplayNames = mapOf(
-    TelemetryKey.POWER to "Potência",
-    TelemetryKey.CURRENT to "Corrente",
-    TelemetryKey.VOLTAGE to "Tensão",
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun KeySelector(
-    telemetryKey: TelemetryKey,
-    onTelemetryKeyChange: (TelemetryKey) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier.padding(16.dp)) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = telemetryDisplayNames[telemetryKey] ?: telemetryKey.name,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Tipo de dado", color = MaterialTheme.colorScheme.primary) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = filterSelectorColors(),
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                TelemetryKey.entries.forEach { key ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(text = telemetryDisplayNames[key] ?: key.name)
-                        },
-                        onClick = {
-                            onTelemetryKeyChange(key)
+                            onItemSelected(item)
                             expanded = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
@@ -218,12 +125,17 @@ fun CustomFullScreenGradientBackground(
 
 @Composable
 private fun filterSelectorColors(): TextFieldColors = TextFieldDefaults.colors(
-    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-    unfocusedTextColor = MaterialTheme.colorScheme.primary,
-    focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-    unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-    focusedContainerColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer
+    focusedTextColor = AirPowerTheme.color.onSurface,
+    unfocusedTextColor = AirPowerTheme.color.onSurface,
+    focusedLabelColor = AirPowerTheme.color.onSurface,
+    unfocusedLabelColor = AirPowerTheme.color.onSurface,
+    focusedContainerColor = AirPowerTheme.color.secondaryContainer,
+    unfocusedContainerColor = AirPowerTheme.color.surface.copy(alpha = 0.7f),
+    focusedIndicatorColor = AirPowerTheme.color.onSurface.copy(alpha = 0.9f),
+    unfocusedIndicatorColor = AirPowerTheme.color.surface,
+    cursorColor = AirPowerTheme.color.secondary,
+    focusedPlaceholderColor = AirPowerTheme.color.primary.copy(alpha = 0.6f),
+    unfocusedPlaceholderColor = AirPowerTheme.color.onSurface.copy(alpha = 0.3f),
 )
 
 @Composable

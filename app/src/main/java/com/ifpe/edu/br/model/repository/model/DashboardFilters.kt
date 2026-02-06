@@ -9,7 +9,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
 
 data class DashboardFilters(
-    val interval: TimeInterval = TimeInterval.MONTH,
+    val interval: TimeInterval = TimeInterval.WEEK,
     val telemetryKey: TelemetryKey = TelemetryKey.POWER,
     val chartType: ChartType = ChartType.BAR
 )
