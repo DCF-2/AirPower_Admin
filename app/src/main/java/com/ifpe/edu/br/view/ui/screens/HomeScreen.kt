@@ -166,7 +166,7 @@ fun AlarmSection(alarmsInfo: List<AlarmInfo>) {
                                             )
                                             Spacer(modifier = Modifier.padding(vertical = 5.dp))
                                             CustomText(
-                                                text = severities.size.toString(),
+                                                text = alarmDashboardData.bySeverity[severity]?.size.toString(),
                                                 color = AirPowerTheme.color.onSecondaryContainer,
                                                 fontStyle = AirPowerTheme.typography.bodyLarge
                                             )
