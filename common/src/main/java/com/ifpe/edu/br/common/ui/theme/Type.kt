@@ -24,7 +24,7 @@ val compactTypography = AppTypography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
-        fontSize = 24.sp
+        fontSize = 28.sp
     ),
     displayMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -53,7 +53,7 @@ val expandedTypography = AppTypography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp
+        fontSize = 36.sp
     ),
     displayMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,

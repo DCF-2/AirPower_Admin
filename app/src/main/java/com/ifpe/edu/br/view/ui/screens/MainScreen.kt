@@ -39,7 +39,7 @@ import com.ifpe.edu.br.common.components.CustomNavigationBar
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.CustomTopBar
 import com.ifpe.edu.br.common.components.FailureDialog
-import com.ifpe.edu.br.common.components.GradientBackground
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.AuthActivity
@@ -81,7 +81,7 @@ fun MainScreen(
             Scaffold(
                 topBar = {
                     val title = when (currentRoute) {
-                        Screen.Home.route -> "Início"
+                        Screen.Home.route -> "Resumo"
                         Screen.Devices.route -> "Dispositivos"
                         Screen.Dashboards.route -> "Dashboards"
                         Screen.DeviceDetail.route -> "Detalhes do Dispositivo"
@@ -95,7 +95,7 @@ fun MainScreen(
                             if (shouldShowBottomBar) {
                                 CustomIconButton(
                                     iconResId = R.drawable.notification_icon,
-                                    iconTint = if (hasNotification(notification.value)) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                                    iconTint = if (hasNotification(notification.value)) AirPowerTheme.color.secondary else AirPowerTheme.color.onBackground,
                                     contentDescription = "ícone de notificações",
                                     backgroundColor = Color.Transparent,
                                     onClick = {
@@ -116,9 +116,8 @@ fun MainScreen(
                         centerContent = {
                             CustomText(
                                 text = title,
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary,
+                                fontStyle = AirPowerTheme.typography.displayLarge,
+                                color = AirPowerTheme.color.onBackground,
                                 alignment = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -128,7 +127,7 @@ fun MainScreen(
                             if (shouldShowBottomBar) {
                                 CustomIconButton(
                                     iconResId = R.drawable.menu_icon,
-                                    iconTint = MaterialTheme.colorScheme.primary,
+                                    iconTint = AirPowerTheme.color.onBackground,
                                     backgroundColor = Color.Transparent,
                                     contentDescription = "Ícone de menu",
                                     onClick = {
@@ -158,13 +157,6 @@ fun MainScreen(
                     }
                 }
             ) { innerPadding ->
-                val theme = MaterialTheme.colorScheme
-                CustomFullScreenGradientBackground(
-                    listColor = listOf(
-                        theme.background,
-                        theme.background.copy(alpha = 0.6f)
-                    )
-                )
                 NavHostContainer(
                     navController = navController,
                     modifier = Modifier.padding(innerPadding),

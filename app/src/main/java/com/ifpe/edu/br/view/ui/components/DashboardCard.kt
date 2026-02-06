@@ -42,6 +42,7 @@ import com.ifpe.edu.br.common.components.CustomIconButton
 import com.ifpe.edu.br.common.components.CustomLineChart
 import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.RectButton
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.repository.model.ChartType
 import com.ifpe.edu.br.model.repository.model.DashboardFilters
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
@@ -53,7 +54,10 @@ import com.ifpe.edu.br.model.repository.remote.dto.agg.ChartDataWrapper
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
 import com.ifpe.edu.br.model.util.ResultWrapper
+import com.ifpe.edu.br.view.ui.screens.StatisticsRow
+import com.ifpe.edu.br.view.ui.screens.formatDecimalBr
 import com.ifpe.edu.br.view.ui.screens.getTimeWrapper
+import com.ifpe.edu.br.view.ui.screens.toTitleCase
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 
 
@@ -192,6 +196,7 @@ fun MainChart(
     paddingEnd: Dp = 0.dp,
     paddingTop: Dp = 0.dp,
     paddingBottom: Dp = 0.dp,
+    chartHeight: Dp = 300.dp,
     chartType: ChartType = ChartType.BAR
 ) {
     CustomCard(
@@ -210,14 +215,14 @@ fun MainChart(
                                 when (chartType) {
                                     ChartType.BAR -> {
                                         CustomColumnChart(
-                                            height = 300.dp,
+                                            height = chartHeight,
                                             dataWrapper = chartDataWrapper
                                         )
                                     }
 
                                     ChartType.LINE -> {
                                         CustomLineChart(
-                                            height = 300.dp,
+                                            height = chartHeight,
                                             dataWrapper = chartDataWrapper
                                         )
                                     }
@@ -338,62 +343,6 @@ private fun HeaderWithSettings(
 }
 
 @Composable
-fun StatisticsRow(
-    dataWrapper: ChartDataWrapper,
-    telemetryKey: TelemetryKey
-) {
-    val stats = remember(dataWrapper) {
-        val values = dataWrapper.entries.map { it.value }
-        if (values.isEmpty()) return@remember null
-        val max = values.maxOrNull() ?: 0.0
-        val min = values.minOrNull() ?: 0.0
-        val avg = values.average()
-        Triple(max, min, avg)
-    }
-
-    if (stats == null) return
-    val (max, min, avg) = stats
-    val unit = when (telemetryKey) {
-        TelemetryKey.POWER -> "W"
-        TelemetryKey.VOLTAGE -> "V"
-        TelemetryKey.CURRENT -> "A"
-    }
-
-    CustomCard(
-        paddingTop = 8.dp,
-        paddingBottom = 8.dp,
-        layouts = listOf {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                StatItem(
-                    label = "Mínimo",
-                    value = min.toDouble(),
-                    unit = unit,
-                    color = Color(0xFF4CAF50)
-                ) // green
-                StatItem(
-                    label = "Média",
-                    value = avg,
-                    unit = unit,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                StatItem(
-                    label = "Máximo",
-                    value = max.toDouble(),
-                    unit = unit,
-                    color = Color(0xFFE91E63)
-                ) // red
-            }
-        }
-    )
-}
-
-@Composable
 fun StatItem(
     label: String,
     value: Double,
@@ -404,16 +353,14 @@ fun StatItem(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         CustomText(
-            text = label,
-            fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-            fontWeight = FontWeight.Normal
+            text = label.toTitleCase(),
+            fontStyle = AirPowerTheme.typography.bodyLarge,
+            color = color,
         )
         CustomText(
-            text = "%.1f %s".format(value, unit),
-            fontSize = 18.sp,
+            text =  value.toString().formatDecimalBr() + unit,
             color = color,
-            fontWeight = FontWeight.Bold
+            fontStyle = AirPowerTheme.typography.bodySmall
         )
     }
 }

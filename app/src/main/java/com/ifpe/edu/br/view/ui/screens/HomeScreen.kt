@@ -1,14 +1,17 @@
-package com.ifpe.edu.br.view.ui.screens
-
 /*
 * Trabalho de conclusão de curso - IFPE 2025
 * Author: Willian Santos
 * Project: AirPower Costumer
 */
+
+package com.ifpe.edu.br.view.ui.screens
+
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,10 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -27,25 +27,27 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.ifpe.edu.br.common.CommonConstants
 import com.ifpe.edu.br.common.components.CustomCard
 import com.ifpe.edu.br.common.components.CustomColumn
-import com.ifpe.edu.br.common.components.CustomColumnChart
 import com.ifpe.edu.br.common.components.CustomText
-import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
-import com.ifpe.edu.br.model.Constants
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
+import com.ifpe.edu.br.model.repository.model.ChartType
 import com.ifpe.edu.br.model.repository.model.HomeScreenAlarmSummaryCard
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
 import com.ifpe.edu.br.model.repository.remote.dto.DevicesStatusSummary
@@ -60,14 +62,23 @@ import com.ifpe.edu.br.model.util.ResultWrapper
 import com.ifpe.edu.br.view.ui.components.AlarmCardInfo
 import com.ifpe.edu.br.view.ui.components.CardInfo
 import com.ifpe.edu.br.view.ui.components.EmptyStateCard
-import com.ifpe.edu.br.view.ui.components.LoadingCard
+import com.ifpe.edu.br.view.ui.components.GradientDivider
+import com.ifpe.edu.br.view.ui.components.MainChart
+import com.ifpe.edu.br.view.ui.components.SolidDivider
+import com.ifpe.edu.br.view.ui.components.StatItem
+
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
+import java.text.NumberFormat
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
+
+
+private val telemetryKey = TelemetryKey.POWER
 
 @Composable
 fun HomeScreen(
@@ -78,6 +89,7 @@ fun HomeScreen(
     val alarmInfo = mainViewModel.getAlarmInfoSet().collectAsState()
     val allDeviceIds =
         mainViewModel.getDevicesSummary().collectAsState().value.map { it.id.toString() }
+    val isRefreshing by mainViewModel.isRefreshing.collectAsState()
 
     /*
      * this should me dynamic on future releases
@@ -85,10 +97,10 @@ fun HomeScreen(
     val homeScreenRequest = AggregationRequest(
         devicesIds = allDeviceIds,
         aggStrategy = AggStrategy.AVG,
-        aggKey = TelemetryKey.POWER,
+        aggKey = telemetryKey,
         timeIntervalWrapper = getTimeWrapper(
             System.currentTimeMillis(),
-            TimeInterval.YEAR
+            TimeInterval.MONTH
         )
     )
 
@@ -100,308 +112,459 @@ fun HomeScreen(
         }
     }
 
-    CustomColumn(
-        modifier = Modifier
-            .verticalScroll(scrollState)
-            .fillMaxSize(),
-        alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
-        layouts = listOf {
-            DevicesConsumptionSummaryCardBoard(
-                aggregationState = aggregationState.value,
-                alarmInfo = alarmInfo.value,
-                cardLabel = "Consumo de todos os dispositivos"
-            )
-            AlarmsSummaryCardCardBoard(
-                alarmInfo.value
-            )
-            SummaryCardCardBoard(
-                aggregationState.value,
-                viewModel = mainViewModel
-            )
-        }
-    )
-}
-
-@Composable
-fun SummaryCardCardBoard(
-    resultWrapper: ResultWrapper<AggDataWrapperResponse>,
-    viewModel: AirPowerViewModel
-) {
-    val aggKey = Constants.UIStateKey.AGG_DATA_KEY
-    val aggDataState = viewModel.uiStateManager.observeUIState(aggKey).collectAsState()
-    val context = LocalContext.current
-    CustomCard(
-        paddingStart = 15.dp,
-        paddingEnd = 15.dp,
-        paddingTop = 5.dp,
-        paddingBottom = 10.dp,
-        layouts = listOf {
-            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                CustomText(
-                    color = MaterialTheme.colorScheme.primary,
-                    text = "Staus dos dispositivos",
-                    fontSize = 20.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-
-            if (aggDataState.value.state == Constants.UIState.STATE_LOADING) {
-                LoadingCard()
-            } else {
-                if (resultWrapper is ResultWrapper.Success) {
-                    DevicesStatusGrid(resultWrapper.value.statusSummaries) {
-                        Toast.makeText(
-                            context,
-                            "Essa funcionalidade está em desenvolvimento",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-
-                } else {
-                    EmptyStateCard()
-                }
-            }
-        }
-    )
-}
-
-@Composable
-private fun AlarmsSummaryCardCardBoard(
-    alarmInfo: List<AlarmInfo>
-) {
-    val context = LocalContext.current
-    CustomCard(
-        paddingStart = 15.dp,
-        paddingEnd = 15.dp,
-        paddingTop = 5.dp,
-        paddingBottom = 10.dp,
-        layouts = listOf {
-            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                CustomText(
-                    color = MaterialTheme.colorScheme.primary,
-                    text = "Meus alarmes",
-                    fontSize = 20.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-
-            if (alarmInfo != null && alarmInfo.isNotEmpty()) {
-                HomeScreenAlarmGrid(alarmInfo) {
-                    Toast.makeText(
-                        context,
-                        "Essa funcionalidade está em desenvolvimento",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-                Spacer(modifier = Modifier.padding(vertical = 4.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    CustomText(
-                        modifier = Modifier.clickable {
-                            Toast.makeText(
-                                context,
-                                "Essa funcionalidade está em desenvolvimento",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                        color = MaterialTheme.colorScheme.primary,
-                        text = "Detalhes",
-                        fontSize = 12.sp
-                    )
-                }
-            } else {
-                EmptyStateCard()
-            }
-        }
-    )
-}
-
-@Composable
-fun DevicesConsumptionSummaryCardBoard(
-    aggregationState: ResultWrapper<AggDataWrapperResponse>,
-    alarmInfo: List<AlarmInfo>,
-    cardLabel: String = ""
-) {
-    val context = LocalContext.current
-    val totalAlarmCount = alarmInfo.size ?: 0
-    CustomCard(
-        paddingStart = 15.dp,
-        paddingEnd = 15.dp,
-        paddingTop = 5.dp,
-        paddingBottom = 5.dp,
-        layouts = listOf {
-            CustomColumn(
-                modifier = Modifier.fillMaxSize(),
-                layouts = listOf {
-                    when (aggregationState) {
-                        is ResultWrapper.Success -> {
-                            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Start
-                            ) {
-                                CustomText(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    text = cardLabel,
-                                    fontSize = 20.sp
-                                )
-                            }
-                            ConsumptionSummaryCard(totalAlarmCount, aggregationState.value)
-                            Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                CustomText(
-                                    modifier = Modifier.clickable {
-                                        Toast.makeText(
-                                            context,
-                                            "Essa funcionalidade está em desenvolvimento",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    },
-                                    color = MaterialTheme.colorScheme.primary,
-                                    text = "Detalhes",
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-
-                        is ResultWrapper.Empty -> {
-                            LoadingCard()
-                        }
-
-                        else -> {
-                            EmptyStateCard()
-                        }
-                    }
-                }
-            )
-        }
-    )
-}
-
-@Composable
-private fun ConsumptionSummaryCard(
-    totalAlarmCount: Int,
-    aggDataWrapperResponse: AggDataWrapperResponse
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            mainViewModel.forceRefresh()
+        },
+        modifier = Modifier.fillMaxSize()
     ) {
         CustomColumn(
-            modifier = Modifier.width(110.dp),
+            modifier = Modifier
+                .verticalScroll(scrollState)
+                .fillMaxSize(),
+            alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
             layouts = listOf {
-                Spacer(modifier = Modifier.padding(vertical = 10.dp))
-                SummaryCard("alarmes", "$totalAlarmCount", onClick = {})
-                Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                SummaryCard(
-                    aggDataWrapperResponse.label,
-                    aggDataWrapperResponse.aggregation.value,
-                    onClick = {})
-                Spacer(modifier = Modifier.padding(vertical = 4.dp))
-                SummaryCard(
-                    "Dispositivos",
-                    aggDataWrapperResponse.size.toString(),
-                    onClick = {})
-            })
+                Container(layouts = listOf {
+                    MiscellaneousSection(aggregationState.value)
+                    SummarySection(aggregationState.value)
+                    ChartSection(aggregationState.value)
+                    AlarmSection(alarmInfo.value)
+                })
+            }
+        )
+    }
+}
 
-        Spacer(modifier = Modifier.padding(horizontal = 10.dp))
-        CustomColumn(
-            modifier = Modifier.fillMaxSize(),
-            layouts = listOf {
-                Spacer(modifier = Modifier.padding(vertical = 12.dp))
-                CustomColumnChart(
-                    height = 300.dp,
-                    dataWrapper = ChartDataWrapper(
-                        aggDataWrapperResponse.chartDataWrapper.label,
-                        aggDataWrapperResponse.chartDataWrapper.entries
+@Composable
+fun AlarmSection(alarmsInfo: List<AlarmInfo>) {
+    if (alarmsInfo.isNotEmpty()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SimpleColumn(
+                layouts = listOf {
+                    SectionInfo("Alarmes dos dispositivos")
+                    GradientDivider()
+                    SubsectionTitle("Alarmes por Severidade")
+                    val alarmDashboardData = processAlarms(alarmsInfo)
+                    val severity = alarmDashboardData.bySeverity
+                    TagsRow(
+                        layouts = listOf {
+                            // SEVERITY
+                            if (severity.isNotEmpty()) {
+                                val severities = getExistingSeverities(alarmsInfo)
+                                severities.forEach { severity ->
+                                    ItemCard(
+                                        backGroudColor = AirPowerTheme.color.secondaryContainer,
+                                        layouts = listOf {
+                                            CustomText(
+                                                text = severity.toTitleCase(),
+                                                color = AirPowerTheme.color.onSecondaryContainer,
+                                                fontStyle = AirPowerTheme.typography.bodyLarge
+                                            )
+                                            Spacer(modifier = Modifier.padding(vertical = 5.dp))
+                                            CustomText(
+                                                text = alarmDashboardData.bySeverity[severity]?.size.toString(),
+                                                color = AirPowerTheme.color.onSecondaryContainer,
+                                                fontStyle = AirPowerTheme.typography.bodyLarge
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                            SolidDivider()
+                            SubsectionTitle("Alarmes por Tipo")
+                            // TYPES
+                            val existingTypes = getExistingTypes(alarmsInfo)
+                            val groupedByType = alarmDashboardData.byType
+                            if (existingTypes.isNotEmpty()) {
+                                existingTypes.forEach { item ->
+                                    ItemCard(
+                                        backGroudColor = AirPowerTheme.color.secondaryContainer,
+                                        layouts = listOf {
+                                            val type = groupedByType[item]
+                                            CustomText(
+                                                text = item.toTitleCase(),
+                                                color = AirPowerTheme.color.onSecondaryContainer,
+                                                fontStyle = AirPowerTheme.typography.bodyLarge
+                                            )
+                                            Spacer(modifier = Modifier.padding(vertical = 5.dp))
+                                            CustomText(
+                                                text = type?.size.toString(),
+                                                color = AirPowerTheme.color.onSecondaryContainer,
+                                                fontStyle = AirPowerTheme.typography.bodyLarge
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     )
-                )
-                Spacer(modifier = Modifier.padding(vertical = 4.dp))
-            })
+                    SmallVerticalPadding()
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun SubsectionTitle(text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Text(
+            text = text,
+            style = AirPowerTheme.typography.bodySmall,
+            color = AirPowerTheme.color.onSecondaryContainer
+        )
     }
 }
 
 
-@Composable
-private fun SummaryCard(
-    label: String,
-    data: String,
-    onClick: () -> Unit,
-    backgroundColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    textColor: Color = MaterialTheme.colorScheme.primary,
-    fontWeight: FontWeight = FontWeight.Light
-) {
-    CustomCard(
-        modifier = Modifier
-            .clip(RoundedCornerShape(cardCornerRadius))
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .background(backgroundColor)
-            .clickable { onClick() },
-        layouts = listOf {
-            CustomColumn(
-                modifier = Modifier.fillMaxSize(),
-                layouts = listOf {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CustomColumn(
-                            modifier = Modifier.wrapContentSize(),
-                            layouts = listOf {
-                                CustomText(
-                                    text = label,
-                                    alignment = TextAlign.Center,
-                                    fontWeight = fontWeight,
-                                    fontSize = 12.sp,
-                                    color = textColor,
-                                    modifier = Modifier.wrapContentWidth()
-                                )
-                            }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CustomColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            layouts = listOf {
-                                CustomText(
-                                    text = data,
-                                    alignment = TextAlign.Center,
-                                    fontWeight = fontWeight,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier
-                                        .wrapContentWidth()
-                                        .padding(all = 0.dp)
-                                )
-                            }
-                        )
-                    }
+fun String.toTitleCase(): String {
+    if (this.isBlank()) return this
 
-                }
+    return this.lowercase()
+        .split(" ")
+        .joinToString(" ") { word ->
+            word.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+            }
+        }
+}
+
+fun String.formatDecimalBr(): String {
+    val number = this.toDoubleOrNull() ?: 0.0
+    return number.formatDecimalBr()
+}
+
+fun Double.formatDecimalBr(): String {
+    val ptBr = Locale("pt", "BR")
+    val formatter = NumberFormat.getNumberInstance(ptBr).apply {
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+    }
+    return formatter.format(this)
+}
+
+private fun getExistingSeverities(alarms: List<AlarmInfo>): List<String> {
+    return alarms
+        .map { it.severity }
+        .distinct()
+        .sorted()
+}
+
+private fun getExistingTypes(alarms: List<AlarmInfo>): List<String> {
+    return alarms
+        .map { it.type }
+        .distinct()
+        .sorted()
+}
+
+data class AlarmDashboardData(
+    // Mapa onde a Chave é a Severidade (ex: "CRITICAL") e o Valor é a lista de alarmes
+    val bySeverity: Map<String, List<AlarmInfo>> = emptyMap(),
+
+    // Mapa onde a Chave é o Tipo (ex: "High Temperature") e o Valor é a lista de alarmes
+    val byType: Map<String, List<AlarmInfo>> = emptyMap(),
+)
+
+fun processAlarms(alarmsInfo: List<AlarmInfo>): AlarmDashboardData {
+    return AlarmDashboardData(
+        bySeverity = alarmsInfo.groupBy { it.severity },
+        byType = alarmsInfo.groupBy { it.type },
+    )
+}
+
+@Composable
+private fun SectionInfo(text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Text(
+            text = text,
+            style = AirPowerTheme.typography.bodyLarge,
+            color = AirPowerTheme.color.onPrimaryContainer
+        )
+    }
+}
+
+@Composable
+fun TagsRow(
+    layouts: List<@Composable () -> Unit>
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalArrangement = Arrangement.Center
+    ) {
+        layouts.forEach { item ->
+            item()
+        }
+    }
+}
+
+@Composable
+fun ChartSection(value: ResultWrapper<AggDataWrapperResponse>) {
+    when (value) {
+        is ResultWrapper.Success -> {
+            SectionInfo(value.value.label)
+            GradientDivider()
+            Spacer(modifier = Modifier.padding(top = AirPowerTheme.dimens.paddingSmall))
+            MainChart(
+                chartHeight = 250.dp,
+                aggregationState = value,
+                chartType = ChartType.LINE
             )
+            SmallVerticalPadding()
+            StatisticsRow(
+                dataWrapper = value.value.chartDataWrapper,
+                telemetryKey = telemetryKey
+            )
+            SmallVerticalPadding()
+        }
+
+        else -> {}
+    }
+}
+
+@Composable
+fun SummarySection(
+    aggregationWrapper: ResultWrapper<AggDataWrapperResponse>
+) {
+    when (aggregationWrapper) {
+        is ResultWrapper.Success<AggDataWrapperResponse> -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val aggDataWrapper = aggregationWrapper.value
+                val statusSummariesList = aggDataWrapper.statusSummaries
+                SimpleColumn(
+                    layouts = listOf {
+                        SectionInfo("Status dos dispositivos")
+                        GradientDivider()
+                        TagsRow(
+                            layouts = statusSummariesList.map { item ->
+                                {
+                                    ItemCard(
+                                        backGroudColor = AirPowerTheme.color.secondaryContainer,
+                                        layouts = listOf {
+                                            CustomText(
+                                                text = item.label,
+                                                color = AirPowerTheme.color.onSecondaryContainer,
+                                                fontStyle = AirPowerTheme.typography.bodyLarge
+                                            )
+                                            Spacer(modifier = Modifier.padding(vertical = 5.dp))
+                                            CustomText(
+                                                text = item.occurrence.toString(),
+                                                color = AirPowerTheme.color.onSecondaryContainer,
+                                                fontStyle = AirPowerTheme.typography.bodyLarge
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        )
+                        SmallVerticalPadding()
+                    }
+                )
+            }
+        }
+
+        else -> {}
+    }
+}
+
+@Composable
+private fun Container(
+    layouts: List<@Composable () -> Unit>
+) {
+    val colorSchema = AirPowerTheme.color
+    val dimens = AirPowerTheme.dimens
+    CustomCard(
+        paddingStart = dimens.paddingMedium,
+        paddingEnd = dimens.paddingMedium,
+        paddingTop = dimens.paddingMedium,
+        paddingBottom = dimens.paddingMedium,
+        modifier = Modifier
+            .clip(RoundedCornerShape(dimens.cardCornerRadius))
+            .background(colorSchema.primaryContainer)
+            .fillMaxWidth(),
+        layouts = layouts
+    )
+}
+
+@Composable
+private fun ItemCard(
+    layouts: List<@Composable () -> Unit>,
+    backGroudColor: Color = Color.Transparent
+) {
+    val dimens = AirPowerTheme.dimens
+    CustomCard(
+        paddingStart = dimens.paddingSmall,
+        paddingEnd = dimens.paddingSmall,
+        paddingTop = dimens.paddingSmall,
+        paddingBottom = dimens.paddingSmall,
+        modifier = Modifier
+            .clip(RoundedCornerShape(dimens.cardCornerRadius))
+            .background(backGroudColor)
+            .wrapContentSize(),
+        layouts = layouts
+    )
+}
+
+@Composable
+private fun SimpleColumn(
+    layouts: List<@Composable () -> Unit>
+) {
+    CustomColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent),
+        alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
+        layouts = layouts
+    )
+}
+
+@Composable
+fun SimpleRow(
+    layouts: List<@Composable () -> Unit>,
+    isCentered: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isCentered) Arrangement.Center else Arrangement.Start
+    ) {
+        layouts.forEach { layout ->
+            layout()
+        }
+    }
+}
+
+@Composable
+fun MiscellaneousSection(aggDataWrapper: ResultWrapper<AggDataWrapperResponse>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        when (aggDataWrapper) {
+            is ResultWrapper.Success<AggDataWrapperResponse> -> {
+                val aggDataWrapper = aggDataWrapper.value
+                val deviceAmount = aggDataWrapper.size
+                val consumptionLabel = aggDataWrapper.label
+                val consumptionValue = aggDataWrapper.aggregation
+                val measureUnit = aggDataWrapper.chartDataWrapper.label
+                SectionInfo("Informações")
+                GradientDivider()
+                TagsRow(
+                    layouts = listOf {
+                        ItemCard(
+                            backGroudColor = AirPowerTheme.color.secondaryContainer,
+                            layouts = listOf {
+                                CustomText(
+                                    text = "Seus Dispositivos".toTitleCase(),
+                                    fontStyle = AirPowerTheme.typography.bodyLarge,
+                                    color = AirPowerTheme.color.onSecondaryContainer
+                                )
+                                Spacer(modifier = Modifier.padding(vertical = 5.dp))
+                                CustomText(
+                                    text = "$deviceAmount",
+                                    fontStyle = AirPowerTheme.typography.bodyLarge,
+                                    color = AirPowerTheme.color.onSecondaryContainer
+                                )
+                            }
+                        )
+                        Spacer(modifier = Modifier.padding(vertical = 5.dp))
+                        ItemCard(
+                            backGroudColor = AirPowerTheme.color.secondaryContainer,
+                            layouts = listOf {
+
+                                CustomText(
+                                    text = consumptionLabel.toTitleCase(),
+                                    fontStyle = AirPowerTheme.typography.bodyLarge,
+                                    color = AirPowerTheme.color.onSecondaryContainer
+                                )
+                                Spacer(modifier = Modifier.padding(vertical = 5.dp))
+                                CustomText(
+                                    text = consumptionValue.value.formatDecimalBr()+ " $measureUnit".toTitleCase(),
+                                    fontStyle = AirPowerTheme.typography.bodyLarge,
+                                    color = AirPowerTheme.color.onSecondaryContainer
+                                )
+                            }
+                        )
+                    }
+                )
+                SmallVerticalPadding()
+            }
+
+            else -> {}
+        }
+    }
+}
+
+@Composable
+private fun SmallVerticalPadding() {
+    Spacer(modifier = Modifier.padding(bottom = AirPowerTheme.dimens.paddingSmall))
+}
+
+@Composable
+private fun BigVerticalPadding() {
+    Spacer(modifier = Modifier.padding(bottom = AirPowerTheme.dimens.paddingLarge))
+}
+
+@Composable
+fun StatisticsRow(
+    dataWrapper: ChartDataWrapper,
+    telemetryKey: TelemetryKey
+) {
+    val stats = remember(dataWrapper) {
+        val values = dataWrapper.entries.map { it.value }
+        if (values.isEmpty()) return@remember null
+        val max = values.maxOrNull() ?: 0.0
+        val min = values.minOrNull() ?: 0.0
+        val avg = values.average()
+        Triple(max, min, avg)
+    }
+
+    if (stats == null) return
+    val (max, min, avg) = stats
+    val unit = when (telemetryKey) {
+        TelemetryKey.POWER -> "W"
+        TelemetryKey.VOLTAGE -> "V"
+        TelemetryKey.CURRENT -> "A"
+    }
+
+    ItemCard(
+        backGroudColor = AirPowerTheme.color.secondaryContainer,
+        layouts = listOf {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatItem(
+                    label = "Mínimo",
+                    value = min.toDouble(),
+                    unit = unit,
+                    color = AirPowerTheme.color.onSecondaryContainer
+                )
+                StatItem(
+                    label = "Média",
+                    value = avg,
+                    unit = unit,
+                    color = AirPowerTheme.color.onSecondaryContainer
+                )
+                StatItem(
+                    label = "Máximo",
+                    value = max.toDouble(),
+                    unit = unit,
+                    color = AirPowerTheme.color.onSecondaryContainer
+                )
+            }
         }
     )
 }

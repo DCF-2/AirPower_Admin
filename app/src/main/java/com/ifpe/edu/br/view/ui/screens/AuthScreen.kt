@@ -58,7 +58,6 @@ import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.common.contracts.UIState
 import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.common.ui.theme.White
-import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.repository.remote.dto.auth.AuthUser
@@ -97,14 +96,14 @@ fun AuthScreen(
         layouts = listOf {
             val cardColor = MaterialTheme.colorScheme.primary
             var isSelectionHandlerFocused by remember { mutableStateOf(false) }
-
+            val appDimens = AirPowerTheme.dimens
             CustomCard(
-                paddingStart = 20.dp,
-                paddingEnd = 20.dp,
-                paddingTop = 20.dp,
-                paddingBottom = 20.dp,
+                paddingStart = appDimens.paddingMedium,
+                paddingEnd = appDimens.paddingMedium,
+                paddingTop = appDimens.paddingMedium,
+                paddingBottom = appDimens.paddingMedium,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(cardCornerRadius))
+                    .clip(RoundedCornerShape(appDimens.cardCornerRadius))
                     .fillMaxSize()
                     .clickable(
                         indication = null,
@@ -128,7 +127,7 @@ fun AuthScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(cardCornerRadius))
+                                    .clip(RoundedCornerShape(appDimens.cardCornerRadius))
                                     .wrapContentSize()
                             ) {
                                 Image(

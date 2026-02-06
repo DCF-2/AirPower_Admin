@@ -20,6 +20,7 @@ import androidx.navigation.NavHostController
 import com.ifpe.edu.br.common.CommonConstants
 import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.TextTitle
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceSummary
 import com.ifpe.edu.br.view.ui.components.DeviceCard
 import com.ifpe.edu.br.viewmodel.AirPowerViewModel
@@ -31,13 +32,6 @@ fun DeviceScreen(
     mainViewModel: AirPowerViewModel
 ) {
     val devicesSummary by mainViewModel.getDevicesSummary().collectAsState()
-
-    val context = LocalContext.current
-
-    LaunchedEffect(Unit) {
-        //mainViewModel.startDataFetchers()
-    }
-
     when {
         devicesSummary.isEmpty() -> {
             CustomColumn(
@@ -45,7 +39,7 @@ fun DeviceScreen(
                 alignmentStrategy = CommonConstants.Ui.ALIGNMENT_CENTER,
                 layouts = listOf {
                     TextTitle(
-                        textColor = MaterialTheme.colorScheme.primary,
+                        textColor = AirPowerTheme.color.onPrimaryContainer,
                         textAlign = TextAlign.Center,
                         message = "Nenhum dispositivo encontrado.\nVerifique sua conexão ou adicione novos dispositivos."
                     )
@@ -70,9 +64,9 @@ private fun DeviceGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier
             .fillMaxSize(),
-        contentPadding = PaddingValues(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(AirPowerTheme.dimens.paddingSmall),
+        verticalArrangement = Arrangement.spacedBy(AirPowerTheme.dimens.paddingSmall),
+        horizontalArrangement = Arrangement.spacedBy(AirPowerTheme.dimens.paddingSmall)
     ) {
         items(deviceCards, key = { it.id }) { deviceItem ->
             DeviceCard(device = deviceItem, onClick = onClick)
