@@ -6,9 +6,11 @@
 package com.ifpe.edu.br.view.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,7 +31,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.repository.model.ChartType
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
@@ -221,3 +225,39 @@ private fun filterSelectorColors(): TextFieldColors = TextFieldDefaults.colors(
     focusedContainerColor = MaterialTheme.colorScheme.onSecondaryContainer,
     unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer
 )
+
+@Composable
+fun GradientDivider(
+    modifier: Modifier = Modifier,
+) {
+    val colors = listOf(
+        AirPowerTheme.color.primary,
+        AirPowerTheme.color.primary.copy(alpha = 0.1f)
+    )
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(2.dp)
+            .background(
+                brush = Brush.horizontalGradient(colors)
+            )
+    )
+}
+
+@Composable
+fun SolidDivider(
+    modifier: Modifier = Modifier,
+) {
+    val colors = listOf(
+        AirPowerTheme.color.onPrimaryContainer,
+        AirPowerTheme.color.primary.copy(alpha = 0.1f)
+    )
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(2.dp)
+            .background(
+                brush = Brush.radialGradient(colors)
+            )
+    )
+}

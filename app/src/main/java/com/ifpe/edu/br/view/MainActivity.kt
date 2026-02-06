@@ -7,7 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +26,10 @@ import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.ui.screens.ExpiredSessionWarningScreen
 import com.ifpe.edu.br.view.ui.screens.MainScreen
 import com.ifpe.edu.br.common.ui.theme.AirPowerCostumerTheme
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
+import com.ifpe.edu.br.common.ui.theme.AppTypography
+import com.ifpe.edu.br.view.ui.theme.darkAppThemeSchema
+import com.ifpe.edu.br.view.ui.theme.lightAppThemeSchema
 import com.ifpe.edu.br.viewmodel.AirPowerViewModelProvider
 
 class MainActivity : ComponentActivity() {
@@ -55,7 +61,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            AirPowerCostumerTheme {
+            AirPowerCostumerTheme(
+                lightAppScheme = lightAppThemeSchema,
+                darkAppColorScheme = darkAppThemeSchema
+            ) {
                 if (sessionState.value.state == Constants.UIState.STATE_UPDATE_SESSION) {
                     viewModel.resetUIState(stateKey)
                     viewModel.updateSession()

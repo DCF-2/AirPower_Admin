@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -204,7 +205,7 @@ fun NotificationCard(
 private fun GetDivider() {
     Divider(
         color = Color.Gray.copy(alpha = 0.3f),
-        thickness = 1.dp
+        thickness = 2.dp
     )
 }
 

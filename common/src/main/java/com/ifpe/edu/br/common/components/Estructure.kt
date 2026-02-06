@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.ifpe.edu.br.common.CommonConstants
+import com.ifpe.edu.br.common.ui.theme.AirPowerCostumerTheme
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.common.ui.theme.cardBackgroundGradientDark
 import com.ifpe.edu.br.common.ui.theme.cardBackgroundGradientLight
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
@@ -74,7 +76,7 @@ fun CustomCard(
         .fillMaxWidth()
         .background(
             brush = Brush.linearGradient(
-                colors = if (isSystemInDarkTheme()) cardBackgroundGradientDark else cardBackgroundGradientLight,
+                colors = listOf(Color.Transparent, Color.Transparent),
                 start = Offset(0f, 0f),
                 end = Offset(1000f, 1000f)
             )
@@ -140,7 +142,13 @@ fun CustomNavigationBar(
                     }
                 },
                 icon = item.icon,
-                label = { Text(item.label) },
+                label = {
+                    CustomText(
+                        text = item.label,
+                        fontStyle = MaterialTheme.typography.labelSmall,
+                        color = AirPowerTheme.color.primary
+                    )
+                },
                 alwaysShowLabel = showLabel
             )
         }
