@@ -184,7 +184,7 @@ private fun PaddingSmall() {
 
 @Composable
 private fun GetPaddingStart() {
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.padding(horizontal = 4.dp))
 }
 
 @Composable

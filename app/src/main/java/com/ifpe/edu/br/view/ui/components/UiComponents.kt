@@ -84,7 +84,7 @@ fun <T> GenericDropdownSelector(
                             )
                         },
                         colors = MenuItemColors(
-                            textColor = Color.Red,
+                            textColor = AirPowerTheme.color.onSecondaryContainer,
                             leadingIconColor = AirPowerTheme.color.onSecondaryContainer,
                             trailingIconColor = AirPowerTheme.color.onSecondaryContainer,
                             disabledTextColor = AirPowerTheme.color.onSecondaryContainer,
