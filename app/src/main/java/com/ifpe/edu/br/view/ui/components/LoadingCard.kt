@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ifpe.edu.br.common.components.CustomProgressDialog
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 
 /*
 * Trabalho de conclusão de curso - IFPE 2025
@@ -30,8 +31,8 @@ fun LoadingCard() {
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxSize(),
-            indicatorColor = MaterialTheme.colorScheme.secondary,
-            textColor = MaterialTheme.colorScheme.primary
+            indicatorColor = AirPowerTheme.color.secondary,
+            textColor = AirPowerTheme.color.onBackground
         ) { modifier ->
             CustomFullScreenGradientBackground(
                 modifier = modifier,

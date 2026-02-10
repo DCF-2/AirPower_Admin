@@ -1,3 +1,8 @@
+/*
+* Trabalho de conclusão de curso - IFPE 2025
+* Author: Willian Santos
+* Project: AirPower Costumer
+*/
 package com.ifpe.edu.br.view.ui.components
 
 import androidx.compose.foundation.background
@@ -13,35 +18,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Divider
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ifpe.edu.br.common.components.CustomCard
 import com.ifpe.edu.br.common.components.CustomText
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.common.ui.theme.cardCornerRadius
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
+import com.ifpe.edu.br.view.ui.screens.SimpleRow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/*
-* Trabalho de conclusão de curso - IFPE 2025
-* Author: Willian Santos
-* Project: AirPower Costumer
-*/
 @Composable
 fun NotificationCard(
     item: AirPowerNotificationItem,
     onClick: () -> Unit
 ) {
+    val dimens = AirPowerTheme.dimens
+
     CustomCard(
         modifier = Modifier
             .clip(RoundedCornerShape(cardCornerRadius))
@@ -49,151 +48,128 @@ fun NotificationCard(
             .fillMaxWidth()
             .background(getCardColor(item.status))
             .clickable { onClick() },
+        paddingStart = dimens.paddingSmall,
+        paddingEnd = dimens.paddingSmall / 3,
+        paddingTop = dimens.paddingSmall / 3,
+        paddingBottom = dimens.paddingMedium,
         layouts = listOf {
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(all = 0.dp),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    CustomText(
-                        color = MaterialTheme.colorScheme.secondary,
-                        alignment = TextAlign.Left,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal,
-                        text = "Assunto:"
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(all = 0.dp),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    GetPaddingStart()
-                    CustomText(
-                        color = MaterialTheme.colorScheme.primary,
-                        alignment = TextAlign.Left,
-                        fontSize = 22.sp,
-                        text = item.subject
-                    )
-                }
-                GetDivider()
-                GetPaddingStart()
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    CustomText(
-                        color = MaterialTheme.colorScheme.secondary,
-                        alignment = TextAlign.Left,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal,
-                        text = "Origem:"
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    GetPaddingStart()
-                    CustomText(
-                        color = MaterialTheme.colorScheme.primary,
-                        alignment = TextAlign.Left,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Normal,
-                        text = item.alarmOriginatorName
-                    )
-                }
-                GetDivider()
-                GetPaddingStart()
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Column {
+                PaddingSmall()
+                SimpleRow(
+                    layouts = listOf {
                         CustomText(
-                            color = MaterialTheme.colorScheme.secondary,
                             alignment = TextAlign.Left,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Normal,
-                            text = "Severidade:"
+                            color = AirPowerTheme.color.onPrimaryContainer,
+                            fontStyle = AirPowerTheme.typography.bodyLarge,
+                            text = "Assunto:"
                         )
-                        Row(
-                            modifier = Modifier.wrapContentSize(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            GetPaddingStart()
+                    }
+                )
+                SimpleRow(
+                    layouts = listOf {
+                        GetPaddingStart()
+                        CustomText(
+                            fontStyle = AirPowerTheme.typography.bodyLarge,
+                            color = AirPowerTheme.color.onSecondaryContainer,
+                            alignment = TextAlign.Left,
+                            text = item.subject
+                        )
+                    }
+                )
+                GradientDivider()
+                PaddingSmall()
+
+                SimpleRow(
+                    layouts = listOf {
+                        CustomText(
+                            color = AirPowerTheme.color.onPrimaryContainer,
+                            fontStyle = AirPowerTheme.typography.bodyLarge,
+                            alignment = TextAlign.Left,
+                            text = "Origem:"
+                        )
+                    }
+                )
+                SimpleRow(
+                    layouts = listOf {
+                        CustomText(
+                            fontStyle = AirPowerTheme.typography.bodyLarge,
+                            color = AirPowerTheme.color.onSecondaryContainer,
+                            alignment = TextAlign.Left,
+                            text = item.alarmOriginatorName
+                        )
+                    }
+                )
+                GradientDivider()
+                PaddingSmall()
+
+                SimpleRow(
+                    layouts = listOf {
+                        Column {
                             CustomText(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 22.sp,
-                                alignment = TextAlign.Right,
-                                fontWeight = FontWeight.Normal,
-                                text = item.alarmSeverity
+                                color = AirPowerTheme.color.onPrimaryContainer,
+                                fontStyle = AirPowerTheme.typography.bodyLarge,
+                                alignment = TextAlign.Left,
+                                text = "Severidade:"
                             )
+                            Row(
+                                modifier = Modifier.wrapContentSize(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                GetPaddingStart()
+                                CustomText(
+                                    fontStyle = AirPowerTheme.typography.bodyLarge,
+                                    color = AirPowerTheme.color.onSecondaryContainer,
+                                    alignment = TextAlign.Right,
+                                    text = item.alarmSeverity
+                                )
+                            }
+                        }
+                        Column {
+                            CustomText(
+                                color = AirPowerTheme.color.onPrimaryContainer,
+                                fontStyle = AirPowerTheme.typography.bodyLarge,
+                                alignment = TextAlign.Left,
+                                text = "Tipo:",
+                                modifier = Modifier.padding(vertical = 0.dp)
+                            )
+                            Row(
+                                modifier = Modifier.wrapContentSize(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                GetPaddingStart()
+                                CustomText(
+                                    fontStyle = AirPowerTheme.typography.bodyLarge,
+                                    color = AirPowerTheme.color.onSecondaryContainer,
+                                    alignment = TextAlign.Right,
+                                    text = item.alarmType
+                                )
+                            }
                         }
                     }
-                    Column {
-                        CustomText(
-                            color = MaterialTheme.colorScheme.secondary,
-                            alignment = TextAlign.Left,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Normal,
-                            text = "Tipo:",
-                            modifier = Modifier.padding(vertical = 0.dp)
-                        )
-                        Row(
-                            modifier = Modifier.wrapContentSize(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            GetPaddingStart()
-                            CustomText(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 22.sp,
-                                alignment = TextAlign.Right,
-                                fontWeight = FontWeight.Normal,
-                                text = item.alarmType
-                            )
-                        }
-                    }
-                }
-                GetDivider()
-                GetPaddingStart()
-                Spacer(modifier = Modifier.height(4.dp))
+                )
+                GradientDivider()
+                PaddingSmall()
+
                 Row(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
+
                     Column {
-                        Row(
-                            modifier = Modifier.wrapContentSize(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            CustomText(
-                                color = MaterialTheme.colorScheme.secondary,
-                                alignment = TextAlign.Left,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Normal,
-                                text = "Horário:"
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.wrapContentSize(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            CustomText(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 20.sp,
-                                alignment = TextAlign.Right,
-                                fontWeight = FontWeight.Thin,
-                                text = formatTimestamp(item.createdTime)
-                            )
-                        }
+                        CustomText(
+                            color = AirPowerTheme.color.onPrimaryContainer,
+                            fontStyle = AirPowerTheme.typography.bodySmall,
+                            alignment = TextAlign.Start,
+                            text = "Horário:"
+                        )
+                        CustomText(
+                            fontStyle = AirPowerTheme.typography.bodySmall,
+                            color = AirPowerTheme.color.onSecondaryContainer,
+                            alignment = TextAlign.Right,
+                            text = formatTimestamp(item.createdTime)
+                        )
                     }
                 }
             }
@@ -202,24 +178,21 @@ fun NotificationCard(
 }
 
 @Composable
-private fun GetDivider() {
-    Divider(
-        color = Color.Gray.copy(alpha = 0.3f),
-        thickness = 2.dp
-    )
+private fun PaddingSmall() {
+    Spacer(modifier = Modifier.padding(vertical = AirPowerTheme.dimens.paddingSmall))
 }
 
 @Composable
 private fun GetPaddingStart() {
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.padding(horizontal = 4.dp))
 }
 
 @Composable
 private fun getCardColor(isNew: String): Color {
     return if (isNew == "SENT") {
-        Color.White
+        AirPowerTheme.color.secondaryContainer
     } else {
-        MaterialTheme.colorScheme.primaryContainer
+        AirPowerTheme.color.primaryContainer
     }
 }
 

@@ -94,7 +94,7 @@ fun AuthScreen(
             .background(MaterialTheme.colorScheme.background), // screen background color
         alignmentStrategy = CommonConstants.Ui.ALIGNMENT_CENTER,
         layouts = listOf {
-            val cardColor = MaterialTheme.colorScheme.primary
+            val cardColor = theme.primary
             var isSelectionHandlerFocused by remember { mutableStateOf(false) }
             val appDimens = AirPowerTheme.dimens
             CustomCard(
@@ -222,10 +222,10 @@ fun AuthScreen(
 
                         RectButton(
                             colors = ButtonDefaults.buttonColors(
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                contentColor = theme.onPrimary,
                                 containerColor = cardColor,
-                                disabledContentColor = MaterialTheme.colorScheme.primary,
-                                disabledContainerColor = MaterialTheme.colorScheme.primary
+                                disabledContentColor = theme.primary,
+                                disabledContainerColor = theme.primary
                             ),
                             fontStyle = AirPowerTheme.typography.button,
                             text = "Configurações de rede",

@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -30,8 +33,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,6 +57,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.agg.ChartDataWrapper
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TelemetryKey
 import com.ifpe.edu.br.model.repository.remote.dto.agg.TimeInterval
 import com.ifpe.edu.br.model.util.ResultWrapper
+import com.ifpe.edu.br.view.ui.screens.SimpleRow
 import com.ifpe.edu.br.view.ui.screens.StatisticsRow
 import com.ifpe.edu.br.view.ui.screens.formatDecimalBr
 import com.ifpe.edu.br.view.ui.screens.getTimeWrapper
@@ -92,6 +96,10 @@ fun DashboardCard(
     }
 
     CustomCard(
+        modifier = Modifier
+            .clip(RoundedCornerShape(AirPowerTheme.dimens.cardCornerRadius))
+            .background(AirPowerTheme.color.primaryContainer)
+            .wrapContentSize(),
         layouts = listOf {
             CustomColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -132,16 +140,20 @@ fun DashboardCard(
     }
 }
 
-private val telemetryDisplayNames = mapOf(
+val telemetryDisplayNames = mapOf(
     TelemetryKey.POWER to "Potência",
     TelemetryKey.CURRENT to "Corrente",
     TelemetryKey.VOLTAGE to "Tensão",
 )
-private val intervalLabels = mapOf(
+ val intervalLabels = mapOf(
     TimeInterval.DAY to "Hoje",
     TimeInterval.WEEK to "Esta Semana",
     TimeInterval.MONTH to "Este Mês",
     TimeInterval.YEAR to "Este Ano"
+)
+val chartTypesLabels = mapOf(
+    ChartType.BAR to "Gráfico de coluna",
+    ChartType.LINE to "Gráfico de linha"
 )
 
 @Composable
@@ -159,14 +171,14 @@ fun ChartQueryDetails(filters: DashboardFilters) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CustomText(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = AirPowerTheme.color.onPrimaryContainer,
                     text = "Intervalo:",
-                    fontSize = 12.sp
+                    fontStyle = AirPowerTheme.typography.bodyLarge
                 )
                 CustomText(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = AirPowerTheme.color.onPrimaryContainer,
                     text = "${intervalLabels[filters.interval]}",
-                    fontSize = 10.sp
+                    fontStyle = AirPowerTheme.typography.bodySmall
                 )
             }
             Row(
@@ -175,14 +187,14 @@ fun ChartQueryDetails(filters: DashboardFilters) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CustomText(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = AirPowerTheme.color.onPrimaryContainer,
                     text = "Dado:",
-                    fontSize = 12.sp
+                    fontStyle = AirPowerTheme.typography.bodyLarge
                 )
                 CustomText(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = AirPowerTheme.color.onPrimaryContainer,
                     text = "${telemetryDisplayNames[filters.telemetryKey]}",
-                    fontSize = 10.sp
+                    fontStyle = AirPowerTheme.typography.bodySmall
                 )
             }
         }
@@ -255,9 +267,9 @@ private fun EmptyStateChart() {
             layouts = listOf {
                 Spacer(modifier = Modifier.padding(vertical = 10.dp))
                 CustomText(
-                    color = MaterialTheme.colorScheme.primary,
-                    text = "Não há dados a exibir",
-                    fontSize = 20.sp
+                    fontStyle = AirPowerTheme.typography.bodyLarge,
+                    color = AirPowerTheme.color.onPrimaryContainer,
+                    text = "Não há dados a exibir".toTitleCase(),
                 )
                 Spacer(modifier = Modifier.padding(vertical = 10.dp))
             }
@@ -279,38 +291,74 @@ fun FilterBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White
+        containerColor = AirPowerTheme.color.surface
     ) {
-        Column(modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth()) {
-            CustomText(
-                text = sheetTitle,
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary
+        Column(
+            modifier = Modifier
+                .padding(AirPowerTheme.dimens.paddingSmall)
+                .fillMaxWidth()
+        ) {
+            SimpleRow(
+                isCentered = true,
+                layouts = listOf {
+                    Spacer(modifier = Modifier.padding(horizontal = AirPowerTheme.dimens.paddingSmall))
+                    CustomText(
+                        text = sheetTitle,
+                        fontStyle = AirPowerTheme.typography.displayMedium,
+                        color = AirPowerTheme.color.onSurface
+                    )
+                }
             )
 
-            Spacer(modifier = Modifier.padding(vertical = 8.dp))
+            Spacer(modifier = Modifier.padding(vertical = AirPowerTheme.dimens.paddingSmall))
 
-            TimeIntervalSelector(
-                selectedInterval = draftFilters.interval,
-                onIntervalSelected = { draftFilters = draftFilters.copy(interval = it) }
+            GenericDropdownSelector(
+                items = ChartType.entries,
+                selectedItem = draftFilters.chartType,
+                onItemSelected = { newType ->
+                    draftFilters = draftFilters.copy(chartType = newType)
+                },
+                label = "Estilo do gráfico",
+                itemLabelMapper = { type ->
+                    chartTypesLabels[type] ?: draftFilters.chartType.name
+                }
             )
 
-            ChartTypeSelector(
-                chartType = draftFilters.chartType,
-                onTypeSelected = { draftFilters = draftFilters.copy(chartType = it) }
+            GenericDropdownSelector(
+                items = TimeInterval.entries,
+                selectedItem = draftFilters.interval,
+                onItemSelected = { newType ->
+                    draftFilters = draftFilters.copy(interval = newType)
+                },
+                label = "Intervalo de Tempo",
+                itemLabelMapper = { type ->
+                    intervalLabels[type] ?: draftFilters.chartType.name
+                }
             )
 
-            KeySelector(
-                telemetryKey = draftFilters.telemetryKey,
-                onTelemetryKeyChange = { draftFilters = draftFilters.copy(telemetryKey = it) }
+            GenericDropdownSelector(
+                items = TelemetryKey.entries,
+                selectedItem = draftFilters.telemetryKey,
+                onItemSelected = { newType ->
+                    draftFilters = draftFilters.copy(telemetryKey = newType)
+                },
+                label = "Tipo de dado",
+                itemLabelMapper = { type ->
+                    telemetryDisplayNames[type] ?: draftFilters.chartType.name
+                }
             )
 
             Spacer(modifier = Modifier.padding(vertical = 16.dp))
 
             RectButton(
                 text = "Aplicar Filtros",
+                fontStyle = AirPowerTheme.typography.button,
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    disabledContentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary
+                ),
                 onClick = { onApply(draftFilters) }
             )
 
@@ -320,7 +368,7 @@ fun FilterBottomSheet(
 }
 
 @Composable
-private fun HeaderWithSettings(
+fun HeaderWithSettings(
     title: String,
     onSettingsClick: () -> Unit
 ) {
@@ -329,11 +377,15 @@ private fun HeaderWithSettings(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CustomText(color = MaterialTheme.colorScheme.primary, text = title, fontSize = 20.sp)
+        CustomText(
+            color = AirPowerTheme.color.onPrimaryContainer,
+            text = title,
+            fontStyle = AirPowerTheme.typography.displayMedium
+        )
 
         CustomIconButton(
             iconResId = com.ifpe.edu.br.R.drawable.filter,
-            iconTint = MaterialTheme.colorScheme.primary,
+            iconTint = AirPowerTheme.color.onSecondaryContainer,
             backgroundColor = Color.Transparent,
             onClick = onSettingsClick,
             contentDescription = "filtering button",
@@ -358,7 +410,7 @@ fun StatItem(
             color = color,
         )
         CustomText(
-            text =  value.toString().formatDecimalBr() + unit,
+            text = value.toString().formatDecimalBr() + unit,
             color = color,
             fontStyle = AirPowerTheme.typography.bodySmall
         )

@@ -146,7 +146,7 @@ fun CustomNavigationBar(
                     CustomText(
                         text = item.label,
                         fontStyle = MaterialTheme.typography.labelSmall,
-                        color = AirPowerTheme.color.primary
+                        color = AirPowerTheme.color.onSecondaryContainer
                     )
                 },
                 alwaysShowLabel = showLabel
@@ -159,8 +159,8 @@ fun CustomNavigationBar(
 @Composable
 fun CustomTopBar(
     modifier: Modifier = Modifier,
-    backgroundColor: Color = MaterialTheme.colorScheme.primary,
-    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    backgroundColor: Color = AirPowerTheme.color.primaryContainer,
+    contentColor: Color = AirPowerTheme.color.onPrimaryContainer,
     leftContent: @Composable (() -> Unit)? = null,
     centerContent: @Composable () -> Unit,
     rightContent: @Composable (() -> Unit)? = null

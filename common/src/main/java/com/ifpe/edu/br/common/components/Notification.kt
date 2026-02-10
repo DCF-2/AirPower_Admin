@@ -38,9 +38,9 @@ import com.ifpe.edu.br.common.ui.theme.White
 fun CustomProgressDialog(
     modifier: Modifier = Modifier.wrapContentWidth(),
     message: String = "Aguarde",
-    textColor: Color = MaterialTheme.colorScheme.primary,
+    textColor: Color = AirPowerTheme.color.onBackground,
     fontStyle: TextStyle = LocalTextStyle.current,
-    indicatorColor: Color = MaterialTheme.colorScheme.secondary,
+    indicatorColor: Color = AirPowerTheme.color.secondary,
     customBackground: @Composable (modifier: Modifier) -> Unit
 ) {
     Box(
@@ -74,7 +74,7 @@ fun FailureDialog(
     modifier: Modifier = Modifier.wrapContentWidth(),
     iconSize: Dp = 110.dp,
     text: String = "Um erro ocorreu",
-    textColor: Color = MaterialTheme.colorScheme.primary,
+    textColor: Color = AirPowerTheme.color.onBackground,
     textStyle: TextStyle = LocalTextStyle.current,
     @DrawableRes drawableResId: Int = R.drawable.generic_error,
     retryCallback: () -> Unit,

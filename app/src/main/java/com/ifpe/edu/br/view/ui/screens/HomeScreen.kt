@@ -145,7 +145,7 @@ fun AlarmSection(alarmsInfo: List<AlarmInfo>) {
         ) {
             SimpleColumn(
                 layouts = listOf {
-                    SectionInfo("Alarmes dos dispositivos")
+                    SectionInfo("Alarmes")
                     GradientDivider()
                     SubsectionTitle("Alarmes por Severidade")
                     val alarmDashboardData = processAlarms(alarmsInfo)
@@ -381,15 +381,15 @@ fun SummarySection(
 }
 
 @Composable
-private fun Container(
+fun Container(
     layouts: List<@Composable () -> Unit>
 ) {
     val colorSchema = AirPowerTheme.color
     val dimens = AirPowerTheme.dimens
     CustomCard(
-        paddingStart = dimens.paddingMedium,
-        paddingEnd = dimens.paddingMedium,
-        paddingTop = dimens.paddingMedium,
+        paddingStart = dimens.paddingSmall,
+        paddingEnd = dimens.paddingSmall,
+        paddingTop = dimens.paddingSmall,
         paddingBottom = dimens.paddingMedium,
         modifier = Modifier
             .clip(RoundedCornerShape(dimens.cardCornerRadius))
@@ -605,7 +605,7 @@ private fun HomeScreenAlarmGrid(
             AlarmCardInfo(
                 alarmCardInfo = deviceItem,
                 onClick = onClick,
-                backgroundColor = MaterialTheme.colorScheme.primaryContainer
+                backgroundColor = AirPowerTheme.color.primaryContainer
             )
         }
     }
@@ -638,7 +638,7 @@ private fun DevicesStatusGrid(
                     label = deviceItem.label,
                     value = deviceItem.occurrence.toString(),
                     onClick = onClick,
-                    backgroundColor = MaterialTheme.colorScheme.primaryContainer
+                    backgroundColor = AirPowerTheme.color.primaryContainer
                 )
             }
         }
@@ -657,9 +657,9 @@ private fun DevicesStatusGrid(
                         Toast.LENGTH_SHORT
                     ).show()
                 },
-                color = MaterialTheme.colorScheme.primary,
+                color = AirPowerTheme.color.onPrimaryContainer,
+                fontStyle = AirPowerTheme.typography.bodyLarge,
                 text = "Detalhes",
-                fontSize = 12.sp
             )
         }
     } else {

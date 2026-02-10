@@ -33,6 +33,7 @@ import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.FailureDialog
 import com.ifpe.edu.br.common.components.RoundedImageIcon
 import com.ifpe.edu.br.common.contracts.UIState
+import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.MainActivity
@@ -108,7 +109,7 @@ fun ExpiredSessionWarningScreen(
             drawableResId = R.drawable.auth_issue,
             iconSize = 150.dp,
             text = "A sessão expirou, faça login novamente",
-            textColor = MaterialTheme.colorScheme.primary,
+            textColor = AirPowerTheme.color.onBackground,
             retryCallback = {
                 viewModel.resetUIState(sessionStateKey)
                 navigateAuthScreen(navController)

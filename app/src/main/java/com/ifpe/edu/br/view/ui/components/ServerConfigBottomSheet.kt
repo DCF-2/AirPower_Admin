@@ -41,6 +41,7 @@ import com.ifpe.edu.br.common.components.CustomText
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
+import com.ifpe.edu.br.view.ui.screens.SimpleRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,19 +69,16 @@ fun ServerConfigBottomSheet(
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 15.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CustomText(
-                    text = "Configuração de Rede",
-                    fontStyle = AirPowerTheme.typography.displayLarge,
-                    color = theme.onSurface
-                )
-            }
+            SimpleRow(
+                isCentered = true,
+                layouts = listOf{
+                    CustomText(
+                        text = "Configuração de Rede",
+                        fontStyle = AirPowerTheme.typography.displayMedium,
+                        color = theme.onSurface
+                    )
+                }
+            )
 
             Spacer(modifier = Modifier.padding(vertical = 20.dp))
 
