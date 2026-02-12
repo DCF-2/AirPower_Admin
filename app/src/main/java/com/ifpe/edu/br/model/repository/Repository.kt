@@ -16,14 +16,18 @@ import com.ifpe.edu.br.model.repository.persistence.model.AirPowerUser
 import com.ifpe.edu.br.model.repository.persistence.model.toThingsBoardUser
 import com.ifpe.edu.br.model.repository.remote.api.AirPowerServerConnectionContractImpl
 import com.ifpe.edu.br.model.repository.remote.api.AirPowerServerManager
+import com.ifpe.edu.br.model.repository.remote.api.ThingsBoardServerManager
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
 import com.ifpe.edu.br.model.repository.remote.dto.AllMetricsWrapper
 import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceConsumption
+import com.ifpe.edu.br.model.repository.remote.dto.DeviceCredentials
+import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceSummary
 import com.ifpe.edu.br.model.repository.remote.dto.DevicesStatusSummary
 import com.ifpe.edu.br.model.repository.remote.dto.Id
+import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggDataWrapperResponse
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggregationRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.AuthUser
@@ -70,6 +74,8 @@ class Repository private constructor(context: Context) {
 
     private val _dashboards = MutableStateFlow(getEmptyDashboards())
     private val dashboards: StateFlow<List<DashboardInfo>> = _dashboards.asStateFlow()
+
+    private val thingsBoardManager = ThingsBoardServerManager()
 
     companion object {
         @Volatile
@@ -433,6 +439,42 @@ class Repository private constructor(context: Context) {
             AirPowerLog.d(TAG, "Removing notification with id: ${notificationId.id}")
         _notification.value = _notification.value.filter { notification ->
             notification.id.id != notificationId.id
+        }
+    }
+
+    suspend fun registerDevice(device: DeviceRegistration): ResultWrapper<ThingsBoardDevice> {
+        return try {
+            val tokenObject = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_AIR_POWER_SERVER)
+            val tokenString = tokenObject?.token
+
+            if (tokenString.isNullOrEmpty()) {
+                return ResultWrapper.ApiError(ErrorCode.AP_JWT_EXPIRED)
+            }
+
+            val service = thingsBoardManager.getService(tokenString)
+            val result = service.registerDevice(device)
+            ResultWrapper.Success(result)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
+        }
+    }
+
+    suspend fun getDeviceCredentials(deviceId: String): ResultWrapper<DeviceCredentials> {
+        return try {
+            val tokenObject = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_AIR_POWER_SERVER)
+            val tokenString = tokenObject?.token
+
+            if (tokenString.isNullOrEmpty()) {
+                return ResultWrapper.ApiError(ErrorCode.AP_JWT_EXPIRED)
+            }
+
+            val service = thingsBoardManager.getService(tokenString)
+            val result = service.getDeviceCredentials(deviceId)
+            ResultWrapper.Success(result)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
         }
     }
 }

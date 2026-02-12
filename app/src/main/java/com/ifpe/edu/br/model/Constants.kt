@@ -26,6 +26,12 @@ class Constants {
         const val EMPTY_STATE_CODE = -1
     }
 
+    object Constants {
+
+       //URL base do ThingsBoard
+        const val THINGS_BOARD_BASE_URL = "http://10.5.0.66:8080"
+    }
+
     object UIState {
         const val EMPTY_STATE = "EMPTY_STATE"
         const val STATE_UPDATE_SESSION = "STATE_UPDATE_SESSION"
