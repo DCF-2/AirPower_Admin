@@ -356,11 +356,24 @@ fun AuthScreen(
         }
 
         Constants.UIState.STATE_SUCCESS -> {
-            navController.popBackStack()
-            AirPowerUtil.launchActivity(
-                componentActivity,
-                MainActivity::class.java
-            )
+            navController.popBackStack() // Remove tela de login da pilha
+
+            // Verifica a autoridade capturada pelo ViewModel
+            val authority = airPowerViewModel.getCurrentUserAuthority()
+
+            // Redireciona baseado na Role
+            if (authority == "TENANT_ADMIN") {
+                AirPowerUtil.launchActivity(
+                    componentActivity,
+                    com.ifpe.edu.br.view.AdminActivity::class.java
+                )
+            } else {
+                AirPowerUtil.launchActivity(
+                    componentActivity,
+                    MainActivity::class.java
+                )
+            }
+
             viewModel.resetUIState(authStateKey)
             componentActivity.finish()
         }

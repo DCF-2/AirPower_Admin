@@ -3,6 +3,9 @@ package com.ifpe.edu.br.model.repository.remote.api
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceCredentials
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
+import com.ifpe.edu.br.model.repository.remote.dto.auth.LoginRequest
+import com.ifpe.edu.br.model.repository.remote.dto.auth.ThingsBoardLoginResponse
+import com.ifpe.edu.br.model.repository.remote.dto.user.ThingsBoardUser
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -14,6 +17,14 @@ import retrofit2.http.Path
  */
 interface ThingsBoardAPIService {
 
+    // --- AUTENTICAÇÃO DIRETA (ADMIN) ---
+    @POST("/api/auth/login")
+    suspend fun login(@Body loginRequest: LoginRequest): ThingsBoardLoginResponse
+
+    @GET("/api/auth/user")
+    suspend fun getUser(): ThingsBoardUser
+
+    // --- GESTÃO DE DISPOSITIVOS ---
     @POST("/api/device")
     suspend fun registerDevice(@Body device: DeviceRegistration): ThingsBoardDevice
 

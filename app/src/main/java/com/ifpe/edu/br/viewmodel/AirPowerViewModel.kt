@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ifpe.edu.br.common.contracts.UIState
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.repository.Repository
+import com.ifpe.edu.br.model.repository.persistence.model.AirPowerUser
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
 import com.ifpe.edu.br.model.repository.remote.dto.AllMetricsWrapper
@@ -67,6 +68,8 @@ class AirPowerViewModel(
     private val NOTIFICATIONS_JOB = "NOTIFICATIONS_JOB"
     private val DASHBOARDS_JOB = "DASHBOARDS_JOB"
 
+    private var currentAuthority: String = ""
+
     init {
         startCacheCleanupJob()
     }
@@ -109,44 +112,38 @@ class AirPowerViewModel(
                 UIState(Constants.UIState.STATE_LOADING)
             )
             var isAuthSuccess = false
-            when (val authResponse = repository.authenticate(user = user)) {
+            when (val authResponse = repository.authenticateDirect(user = user)) {
                 is ResultWrapper.ApiError -> {
                     delay(getTimeLeftDelay(startTime))
                     handleApiError(authResponse.errorCode, uiStateKey)
                 }
-
                 is ResultWrapper.NetworkError -> {
                     delay(getTimeLeftDelay(startTime))
                     handleNetworkError(uiStateKey)
                 }
-
                 is ResultWrapper.Success<*> -> {
                     isAuthSuccess = true
                 }
-
                 ResultWrapper.Empty -> {}
             }
 
             var isGetUserSuccess = false
-            when (val currentUserResponse = repository.retrieveCurrentUser()) {
-                is ResultWrapper.ApiError -> {
-                    delay(getTimeLeftDelay(startTime))
-                    handleApiError(
-                        currentUserResponse.errorCode,
-                        uiStateKey
-                    )
+            if (isAuthSuccess) {
+                when (val currentUserResponse = repository.retrieveCurrentUserDirect()) {
+                    is ResultWrapper.ApiError -> {
+                        delay(getTimeLeftDelay(startTime))
+                        handleApiError(currentUserResponse.errorCode, uiStateKey)
+                    }
+                    is ResultWrapper.NetworkError -> {
+                        delay(getTimeLeftDelay(startTime))
+                        handleNetworkError(uiStateKey)
+                    }
+                    is ResultWrapper.Success<*> -> {
+                        // O repositório já salvou no banco e atualizou o cache da authority
+                        isGetUserSuccess = true
+                    }
+                    ResultWrapper.Empty -> {}
                 }
-
-                is ResultWrapper.NetworkError -> {
-                    delay(getTimeLeftDelay(startTime))
-                    handleNetworkError(uiStateKey)
-                }
-
-                is ResultWrapper.Success<*> -> {
-                    isGetUserSuccess = true
-                }
-
-                ResultWrapper.Empty -> {}
             }
 
             if (isAuthSuccess && isGetUserSuccess) {
@@ -579,6 +576,11 @@ class AirPowerViewModel(
             startDataFetchers()
             _isRefreshing.value = false
         }
+    }
+
+    // Método para a AuthScreen consultar se é admin
+    fun getCurrentUserAuthority(): String {
+        return repository.getCachedUserAuthority()
     }
 
 }

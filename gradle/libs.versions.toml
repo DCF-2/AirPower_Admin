@@ -1,5 +1,5 @@
 [versions]
-agp = "8.6.0"
+agp = "8.13.2"
 composeCharts = "0.1.2"
 converterGson = "2.9.0"
 converterScalars = "2.1.0"

@@ -31,6 +31,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggDataWrapperResponse
 import com.ifpe.edu.br.model.repository.remote.dto.agg.AggregationRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.AuthUser
+import com.ifpe.edu.br.model.repository.remote.dto.auth.LoginRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.Token
 import com.ifpe.edu.br.model.repository.remote.dto.error.ErrorCode
 import com.ifpe.edu.br.model.repository.remote.dto.user.ThingsBoardUser
@@ -76,6 +77,8 @@ class Repository private constructor(context: Context) {
     private val dashboards: StateFlow<List<DashboardInfo>> = _dashboards.asStateFlow()
 
     private val thingsBoardManager = ThingsBoardServerManager()
+
+    private var cachedAuthority: String = ""
 
     companion object {
         @Volatile
@@ -476,5 +479,81 @@ class Repository private constructor(context: Context) {
             e.printStackTrace()
             ResultWrapper.NetworkError
         }
+    }
+
+    suspend fun authenticateDirect(user: AuthUser): ResultWrapper<Token> {
+        return try {
+            val service = thingsBoardManager.getService(null)
+
+            // Agora LoginRequest existe
+            val request = LoginRequest(user.username, user.password)
+            val response = service.login(request)
+
+            val token = Token(
+                token = response.token,
+                refreshToken = response.refreshToken,
+                scope = response.scope ?: "TENANT_ADMIN" // Fallback seguro
+            )
+
+            JWTManager.handleAuthentication(
+                Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD,
+                token
+            ) { }
+
+            // Salva também no ID 2 para garantir compatibilidade
+            JWTManager.handleAuthentication(
+                Constants.ServerConnectionIds.CONNECTION_ID_AIR_POWER_SERVER,
+                token
+            ) { }
+
+            ResultWrapper.Success(token)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            if (e is retrofit2.HttpException && e.code() == 401) {
+                ResultWrapper.ApiError(ErrorCode.TB_INVALID_CREDENTIALS)
+            } else {
+                ResultWrapper.NetworkError
+            }
+        }
+    }
+
+    suspend fun retrieveCurrentUserDirect(): ResultWrapper<AirPowerUser> {
+        return try {
+            val tokenObject = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)
+            val tokenString = tokenObject?.token
+
+            if (tokenString.isNullOrEmpty()) {
+                return ResultWrapper.ApiError(ErrorCode.AP_JWT_EXPIRED)
+            }
+
+            val service = thingsBoardManager.getService(tokenString)
+            val tbUser = service.getUser()
+
+            val localUser = AirPowerUser(
+                id = tbUser.id.id.toString(), // Converte UUID para String
+                authority = tbUser.authority,
+                email = tbUser.email,
+                firstName = tbUser.firstName,
+                lastName = tbUser.lastName,
+                name = tbUser.name,
+                // Verifica nulidade e converte UUID para String
+                customerId = tbUser.customerId?.id?.toString() ?: "",
+                tenantId = tbUser.tenantId?.id?.toString() ?: ""
+            )
+
+            // Salva no banco
+            userDao.insert(localUser)
+
+            // Atualiza a variável local
+            cachedAuthority = localUser.authority
+
+            ResultWrapper.Success(localUser)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
+        }
+    }
+    fun getCachedUserAuthority(): String {
+        return cachedAuthority
     }
 }

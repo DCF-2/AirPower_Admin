@@ -29,7 +29,7 @@ class Constants {
     object Constants {
 
        //URL base do ThingsBoard
-        const val THINGS_BOARD_BASE_URL = "http://10.5.0.66:8080"
+        const val THINGS_BOARD_BASE_URL = "https://10.5.0.66:8080"
     }
 
     object UIState {
