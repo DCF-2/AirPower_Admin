@@ -33,6 +33,19 @@ android {
             "API_URL",
             "\"${localProperties["airpowerserver.url.api.base"]}\""
         )
+
+        // Leitura segura do local.properties
+        val properties = Properties()
+        val localPropertiesFile = project.rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            properties.load(localPropertiesFile.inputStream())
+        }
+
+        // Pega a chave ou usa string vazia se não encontrar
+        val mapsApiKey = properties.getProperty("MAPS_API_KEY") ?: ""
+
+        // Injeta no Manifesto
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {
@@ -108,4 +121,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
+
+    // Google Maps para Compose
+    implementation("com.google.maps.android:maps-compose:4.3.0")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
 }

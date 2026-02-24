@@ -569,6 +569,37 @@ class Repository private constructor(context: Context) {
             ResultWrapper.NetworkError
         }
     }
+
+    // Função para buscar Latitude e Longitude de um dispositivo específico
+    suspend fun getDeviceLocation(deviceId: String): ResultWrapper<Pair<Double, Double>?> {
+        return try {
+            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
+            val service = thingsBoardManager.getService(token)
+
+            // Chama a API de telemetria
+            val telemetryMap = service.getDeviceTelemetry(deviceId)
+
+            // Extrai os valores (o ThingsBoard retorna strings, precisamos converter)
+            val latStr = telemetryMap["latitude"]?.firstOrNull()?.value
+            val lonStr = telemetryMap["longitude"]?.firstOrNull()?.value
+
+            if (latStr != null && lonStr != null) {
+                val lat = latStr.toDoubleOrNull()
+                val lon = lonStr.toDoubleOrNull()
+
+                if (lat != null && lon != null) {
+                    ResultWrapper.Success(Pair(lat, lon))
+                } else {
+                    ResultWrapper.Success(null) // Tem as chaves, mas valores inválidos
+                }
+            } else {
+                ResultWrapper.Success(null) // Não tem localização cadastrada
+            }
+        } catch (e: Exception) {
+            // Se der erro 404 (sem telemetria) ou outro, apenas ignoramos
+            ResultWrapper.Success(null)
+        }
+    }
     fun getCachedUserAuthority(): String {
         return cachedAuthority
     }

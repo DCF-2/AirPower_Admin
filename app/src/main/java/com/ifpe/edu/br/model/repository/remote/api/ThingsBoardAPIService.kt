@@ -33,6 +33,16 @@ interface ThingsBoardAPIService {
     suspend fun getDeviceCredentials(@Path("deviceId") deviceId: String): DeviceCredentials
 
     // Busca dispositivos do Tenant (Paginado)
-    @GET("/api/tenant/deviceInfos?pageSize=100&page=0")
+    @GET("/api/tenant/deviceInfos?pageSize=1000&page=0")
     suspend fun getTenantDevices(): PageData<ThingsBoardDevice>
+
+    // Buscar telemetria específica (latitude, longitude)
+    // O keys=latitude,longitude filtra para trazer só isso e economizar dados
+    @GET("/api/plugins/telemetry/{deviceId}/values/timeseries?keys=latitude,longitude")
+    suspend fun getDeviceTelemetry(@Path("deviceId") deviceId: String): Map<String, List<TelemetryValue>>
 }
+
+data class TelemetryValue(
+    val ts: Long,
+    val value: String
+)

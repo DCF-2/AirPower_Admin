@@ -3,6 +3,7 @@ package com.ifpe.edu.br.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.maps.model.LatLng
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.Constants.Constants.THINGS_BOARD_BASE_URL
 import com.ifpe.edu.br.model.provisioning.EspConfiguration
@@ -34,6 +35,10 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     // Dispositivo selecionado ou criado para instalação
     private val _selectedDevice = MutableStateFlow<ThingsBoardDevice?>(null)
+
+    // Mapa que vincula ID do Dispositivo -> Coordenada Real
+    private val _deviceLocations = MutableStateFlow<Map<String, LatLng>>(emptyMap())
+    val deviceLocations = _deviceLocations.asStateFlow()
     val selectedDevice = _selectedDevice.asStateFlow()
 
     // Dados temporários da instalação
@@ -42,19 +47,45 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     var targetEspId = "" // ID que a ESP envia para validação
     var currentToken = ""
 
+    // --- 1. LISTAGEM DE DISPOSITIVOS + LOCALIZAÇÃO ---
     fun fetchDevices() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            // Chama o repositório
             val result = repository.getTenantDevices()
 
             if (result is ResultWrapper.Success) {
-                _devicesList.value = result.value
+                val devices = result.value
+                _devicesList.value = devices
+
+                // Após baixar a lista, inicia a busca de localizações em background
+                fetchLocationsForDevices(devices)
             } else {
-                // Opcional: Tratar erro
+                _devicesList.value = emptyList()
             }
             _isLoading.value = false
+        }
+    }
+
+    private fun fetchLocationsForDevices(devices: List<ThingsBoardDevice>) {
+        viewModelScope.launch {
+            val locationsMap = mutableMapOf<String, LatLng>()
+
+            // Para cada dispositivo, busca a telemetria
+            // Dica de performance: Em produção com 1000 devices, isso deve ser feito em lotes ou websocket.
+            // Para < 100 devices, esse loop funciona bem.
+            devices.forEach { device ->
+                val locResult = repository.getDeviceLocation(device.id.id)
+                if (locResult is ResultWrapper.Success && locResult.value != null) {
+                    val (lat, lon) = locResult.value!!
+                    // Filtra coordenadas zeradas ou inválidas (comum em GPS desligado)
+                    if (lat != 0.0 && lon != 0.0) {
+                        locationsMap[device.id.id] = LatLng(lat, lon)
+                    }
+                }
+            }
+            // Atualiza o mapa na UI
+            _deviceLocations.value = locationsMap
         }
     }
 
@@ -63,15 +94,14 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
 
-            // 1. Garante que temos a lista mais atualizada
+            // Busca dados frescos do servidor
             val result = repository.getTenantDevices()
 
             if (result is ResultWrapper.Success) {
-                _devicesList.value = result.value
                 val devices = result.value
+                _devicesList.value = devices // Atualiza o cache local
 
-                // 2. Procura Inteligente:
-                // Verifica se o 'name' OU o 'label' contêm o nome da sala (Ex: "Sala 101")
+                // Procura na lista real se o nome ou label bate com a sala digitada
                 val found = devices.find { device ->
                     device.name.contains(location, ignoreCase = true) ||
                             (device.label != null && device.label.contains(location, ignoreCase = true))
@@ -79,10 +109,9 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (found != null) {
                     _selectedDevice.value = found
-                    // Já busca o token desse dispositivo encontrado para agilizar
                     fetchCredentials(found.id.id)
                 } else {
-                    _selectedDevice.value = null // Não achou, vai liberar o botão "Criar Novo"
+                    _selectedDevice.value = null
                 }
             }
             _isLoading.value = false

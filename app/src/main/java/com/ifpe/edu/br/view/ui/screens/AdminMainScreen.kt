@@ -87,6 +87,19 @@ fun AdminMainScreen(
                     onClick = { currentScreen = "Devices"; scope.launch { drawerState.close() } }
                 )
                 NavigationItem(
+                    label = "Mapa",
+                    icon = Icons.Default.Map,
+                    selected = currentScreen == "Map",
+                    onClick = { currentScreen = "Map"; scope.launch { drawerState.close() } }
+                )
+
+                NavigationItem(
+                    label = "Configurações",
+                    icon = Icons.Default.Settings,
+                    selected = currentScreen == "Settings",
+                    onClick = { currentScreen = "Settings"; scope.launch { drawerState.close() } }
+                )
+                NavigationItem(
                     label = "Sair",
                     icon = Icons.Outlined.ExitToApp,
                     selected = false,
@@ -126,14 +139,21 @@ fun AdminMainScreen(
                 )
             }
         ) { padding ->
-            Box(modifier = Modifier.padding(padding).fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            Box(modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)) {
                 when (currentScreen) {
                     "Home" -> AdminHomeScreen(
                         onNavigateToSetup = { currentScreen = "Setup" },
-                        onNavigateToDevices = { currentScreen = "Devices" }
+                        onNavigateToDevices = { currentScreen = "Devices" },
+                        onNavigateToMap = { currentScreen = "Map" },
+                        onNavigateToSettings = { currentScreen = "Settings" }
                     )
-                    "Setup" -> SetupDeviceWizard(viewModel) // Nossa tela de provisionamento moderna
+                    "Setup" -> SetupDeviceWizard(viewModel)
                     "Devices" -> DeviceListScreen(viewModel)
+                    "Map" -> MapScreen(viewModel)
+                    "Settings" -> SettingsScreen(viewModel, onLogout)
                 }
             }
         }

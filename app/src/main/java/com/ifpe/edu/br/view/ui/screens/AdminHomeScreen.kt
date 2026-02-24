@@ -19,7 +19,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun AdminHomeScreen(
     onNavigateToSetup: () -> Unit,
-    onNavigateToDevices: () -> Unit
+    onNavigateToDevices: () -> Unit,
+    onNavigateToMap: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -101,14 +103,14 @@ fun AdminHomeScreen(
                 subtitle = "Localização",
                 icon = Icons.Default.Map,
                 modifier = Modifier.weight(1f),
-                onClick = { /* Abrir Mapa */ }
+                onClick = onNavigateToMap
             )
             DashboardCard(
                 title = "Ajustes",
                 subtitle = "Configurações",
                 icon = Icons.Default.Settings,
                 modifier = Modifier.weight(1f),
-                onClick = { /* Configurações */ }
+                onClick = onNavigateToSettings
             )
         }
     }
