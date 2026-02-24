@@ -2,6 +2,7 @@ package com.ifpe.edu.br.model.repository.remote.api
 
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceCredentials
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
+import com.ifpe.edu.br.model.repository.remote.dto.PageData
 import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.repository.remote.dto.auth.LoginRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.ThingsBoardLoginResponse
@@ -30,4 +31,8 @@ interface ThingsBoardAPIService {
 
     @GET("/api/device/{deviceId}/credentials")
     suspend fun getDeviceCredentials(@Path("deviceId") deviceId: String): DeviceCredentials
+
+    // Busca dispositivos do Tenant (Paginado)
+    @GET("/api/tenant/deviceInfos?pageSize=100&page=0")
+    suspend fun getTenantDevices(): PageData<ThingsBoardDevice>
 }

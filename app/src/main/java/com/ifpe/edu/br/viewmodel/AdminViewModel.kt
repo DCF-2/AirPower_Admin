@@ -42,33 +42,48 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     var targetEspId = "" // ID que a ESP envia para validação
     var currentToken = ""
 
-    // --- 1. LISTAGEM DE DISPOSITIVOS ---
     fun fetchDevices() {
         viewModelScope.launch {
             _isLoading.value = true
-            // Aqui você deve implementar no Repository a busca por todos os devices do Tenant
-            // Por enquanto, vamos simular ou usar o que tem
-            // val result = repository.getTenantDevices(...)
-            // if (result is Success) _devicesList.value = result.value
+
+            // Chama o repositório
+            val result = repository.getTenantDevices()
+
+            if (result is ResultWrapper.Success) {
+                _devicesList.value = result.value
+            } else {
+                // Opcional: Tratar erro
+            }
             _isLoading.value = false
         }
     }
 
-    // --- 2. LÓGICA DE LOCALIZAÇÃO (Simulada por enquanto) ---
+    // --- 2. LÓGICA DE LOCALIZAÇÃO (REAL) ---
     fun checkLocationAndFindDevice(location: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            delay(1000) // Simula busca na API
 
-            // Lógica: Procura na lista local se tem alguém com essa "location"
-            // Supondo que 'label' ou 'name' contenha a sala
-            val found = _devicesList.value.find { it.name.contains(location, ignoreCase = true) }
+            // 1. Garante que temos a lista mais atualizada
+            val result = repository.getTenantDevices()
 
-            if (found != null) {
-                _selectedDevice.value = found
-                fetchCredentials(found.id.id)
-            } else {
-                _selectedDevice.value = null // Nenhum encontrado, UI deve sugerir criar
+            if (result is ResultWrapper.Success) {
+                _devicesList.value = result.value
+                val devices = result.value
+
+                // 2. Procura Inteligente:
+                // Verifica se o 'name' OU o 'label' contêm o nome da sala (Ex: "Sala 101")
+                val found = devices.find { device ->
+                    device.name.contains(location, ignoreCase = true) ||
+                            (device.label != null && device.label.contains(location, ignoreCase = true))
+                }
+
+                if (found != null) {
+                    _selectedDevice.value = found
+                    // Já busca o token desse dispositivo encontrado para agilizar
+                    fetchCredentials(found.id.id)
+                } else {
+                    _selectedDevice.value = null // Não achou, vai liberar o botão "Criar Novo"
+                }
             }
             _isLoading.value = false
         }

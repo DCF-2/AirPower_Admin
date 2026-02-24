@@ -553,6 +553,22 @@ class Repository private constructor(context: Context) {
             ResultWrapper.NetworkError
         }
     }
+
+    suspend fun getTenantDevices(): ResultWrapper<List<ThingsBoardDevice>> {
+        return try {
+            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
+            val service = thingsBoardManager.getService(token)
+
+            // Chama a API real
+            val pageData = service.getTenantDevices()
+
+            // Retorna apenas a lista de dados
+            ResultWrapper.Success(pageData.data)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
+        }
+    }
     fun getCachedUserAuthority(): String {
         return cachedAuthority
     }
