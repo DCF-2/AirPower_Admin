@@ -1,8 +1,10 @@
 package com.ifpe.edu.br.viewmodel
 
+import android.annotation.SuppressLint
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.Constants.Constants.THINGS_BOARD_BASE_URL
@@ -46,6 +48,9 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     var targetWifiPassword = ""
     var targetEspId = "" // ID que a ESP envia para validação
     var currentToken = ""
+
+    // Cliente de GPS
+    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
 
     // --- 1. LISTAGEM DE DISPOSITIVOS + LOCALIZAÇÃO ---
     fun fetchDevices() {
@@ -143,41 +148,96 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- 4. ENVIO PARA O SOCKET (FINALIZAÇÃO) ---
+    // --- 4. ENVIO PARA O SOCKET + GPS (LÓGICA FINAL) ---
+    // Variável para armazenar o ID digitado na UI
+    var targetEspIdInput: String = ""
+
     fun sendConfigurationToEsp() {
         if (currentToken.isEmpty()) {
             _provisioningStatus.value = "Erro: Token não gerado."
             return
         }
 
-        // JSON reduzido conforme seu pedido: SSID, SENHA, TOKEN
+        // Validação simples
+        if (targetEspIdInput.isBlank()) {
+            _provisioningStatus.value = "Erro: Digite o ID da ESP32 para validar."
+            return
+        }
+
+        // Extrai apenas o IP/Host da URL base
+        val cleanHost = java.net.URI(THINGS_BOARD_BASE_URL).host ?: "10.0.0.1" // Fallback seguro
+
         val config = EspConfiguration(
             targetSsid = targetWifiSsid,
             targetPassword = targetWifiPassword,
             deviceToken = currentToken,
-            // Campos técnicos que o Manager precisa, mas a ESP pode ignorar se não usar
-            serverUrl = THINGS_BOARD_BASE_URL,
-            serverPort = 8080,
+            serverUrl = cleanHost, // Envia só o IP (ex: 192.168.1.10)
+            serverPort = 1883, // Porta MQTT padrão (não HTTP 8080)
             location = ""
         )
 
         viewModelScope.launch {
             provisioningManager.startServer(
                 config = config,
+                expectedEspId = targetEspIdInput,
                 callback = object : EspProvisioningManager.ProvisioningCallback {
                     override fun onStatusChanged(status: String) {
                         _provisioningStatus.value = status
                     }
                     override fun onError(error: String) {
-                        _provisioningStatus.value = "Erro: $error"
+                        _provisioningStatus.value = error
                     }
                     override fun onSuccess() {
-                        _provisioningStatus.value = "Configurado com Sucesso!"
-                        // Aqui poderíamos resetar o fluxo
+                        _provisioningStatus.value = "SUCESSO_SOCKET" // Usamos uma flag para a UI saber
                     }
                 }
             )
         }
+    }
+
+    // Tornamos esta função pública para ser chamada pelo botão na UI
+    @SuppressLint("MissingPermission")
+    fun saveLocationToThingsBoard() {
+        val deviceId = _selectedDevice.value?.id?.id
+
+        if (deviceId == null) {
+            _provisioningStatus.value = "Erro: Dispositivo não selecionado."
+            return
+        }
+
+        _provisioningStatus.value = "Obtendo GPS..."
+
+        try {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                if (location != null) {
+                    _provisioningStatus.value = "Enviando para nuvem..."
+                    viewModelScope.launch {
+                        val result = repository.saveDeviceLocation(deviceId, location.latitude, location.longitude)
+                        if (result is ResultWrapper.Success) {
+                            _provisioningStatus.value = "FINALIZADO: Configurado e Localizado!"
+                        } else {
+                            _provisioningStatus.value = "Erro ao enviar para ThingsBoard. Verifique sua internet."
+                        }
+                    }
+                } else {
+                    _provisioningStatus.value = "Erro: GPS sem sinal."
+                }
+            }.addOnFailureListener { e ->
+                _provisioningStatus.value = "Erro GPS: ${e.message}"
+            }
+        } catch (e: SecurityException) {
+            _provisioningStatus.value = "Erro: Sem permissão de GPS."
+        } catch (e: Exception) {
+            _provisioningStatus.value = "Erro genérico: ${e.message}"
+        }
+    }
+
+    // Limpa os estados para permitir um novo provisionamento
+    fun resetUIState(key: String? = null) {
+        _provisioningStatus.value = "Aguardando início..."
+        _selectedDevice.value = null
+        _isLoading.value = false
+        // Se tiver outras variáveis de estado para limpar, adicione aqui
     }
 
     fun stopSocket() {

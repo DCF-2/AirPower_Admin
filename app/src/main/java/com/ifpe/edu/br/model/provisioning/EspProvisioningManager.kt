@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
@@ -14,90 +15,112 @@ import java.net.SocketTimeoutException
 class EspProvisioningManager {
 
     private val TAG = "EspProvisioning"
-    private val PORT = 9090 // Porta que a ESP32 vai procurar no Gateway (Celular)
+    private val PORT = 9090
     private var serverSocket: ServerSocket? = null
     private var isRunning = false
     private val gson = Gson()
 
-    // Interface para comunicar o progresso de volta para a UI
     interface ProvisioningCallback {
-        fun onStatusChanged(status: String) // Ex: "Aguardando ESP32..."
-        fun onError(error: String)          // Ex: "Timeout"
-        fun onSuccess()                     // Ex: "Dados enviados!"
+        fun onStatusChanged(status: String)
+        fun onError(error: String)
+        fun onSuccess()
     }
 
     suspend fun startServer(
         config: EspConfiguration,
+        expectedEspId: String, // <--- NOVO: O ID que esperamos receber da ESP
         callback: ProvisioningCallback
     ) = withContext(Dispatchers.IO) {
         try {
-            stopServer() // Garante que não tem nada rodando antes
+            stopServer()
 
-            serverSocket = ServerSocket(PORT)
-            serverSocket?.soTimeout = 90000 // 90 segundos esperando a ESP conectar
+            // Configuração Robusta do Socket
+            serverSocket = ServerSocket()
+            serverSocket?.reuseAddress = true
+            serverSocket?.bind(InetSocketAddress("0.0.0.0", PORT))
+            serverSocket?.soTimeout = 120000 // 2 minutos
             isRunning = true
 
-            Log.d(TAG, "Servidor Socket iniciado na porta $PORT")
+            Log.d(TAG, "Servidor ouvindo em 0.0.0.0:$PORT")
             withContext(Dispatchers.Main) {
-                callback.onStatusChanged("Servidor ativo na porta $PORT.\nAguardando a ESP32 conectar no Hotspot...")
+                callback.onStatusChanged("Aguardando conexão da ESP32...")
             }
 
-            // --- BLOQUEANTE: O código para aqui até a ESP conectar ---
+            // Bloqueia até a ESP conectar
             val clientSocket = serverSocket!!.accept()
 
-            // Se passou daqui, a ESP conectou!
-            handleClientConnection(clientSocket, config, callback)
+            Log.d(TAG, "Cliente conectado: ${clientSocket.inetAddress.hostAddress}")
+
+            // Inicia o Handshake
+            handleClientHandshake(clientSocket, config, expectedEspId, callback)
 
         } catch (e: SocketTimeoutException) {
-            Log.e(TAG, "Timeout esperando ESP32")
             withContext(Dispatchers.Main) {
-                callback.onError("Tempo esgotado! A ESP32 não conectou a tempo.\nVerifique se o Hotspot está ligado.")
+                callback.onError("Tempo esgotado. A ESP32 não conectou.")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erro no servidor: ${e.message}")
             withContext(Dispatchers.Main) {
-                callback.onError("Erro: ${e.message}")
+                callback.onError("Erro no Servidor: ${e.message}")
             }
         } finally {
             stopServer()
         }
     }
 
-    private suspend fun handleClientConnection(
+    private suspend fun handleClientHandshake(
         socket: Socket,
         config: EspConfiguration,
+        expectedEspId: String,
         callback: ProvisioningCallback
     ) {
         try {
+            val input = BufferedReader(InputStreamReader(socket.getInputStream()))
+            val output = PrintWriter(socket.getOutputStream(), true)
+
+            // --- PASSO 1: LER O ID DA ESP32 ---
             withContext(Dispatchers.Main) {
-                callback.onStatusChanged("ESP32 Conectada! Enviando configurações...")
+                callback.onStatusChanged("Conectado! Aguardando ID da ESP...")
             }
 
-            val output = PrintWriter(socket.getOutputStream(), true)
-            val input = BufferedReader(InputStreamReader(socket.getInputStream()))
+            // Lê a primeira linha que a ESP mandar.
+            // A ESP deve mandar algo como: "ESP32_DEVICE_ID_XYZ" ou um JSON.
+            val receivedData = input.readLine()
 
-            // 1. Converter o objeto de configuração para JSON String
+            Log.d(TAG, "Recebido da ESP: $receivedData")
+
+            if (receivedData == null) {
+                throw Exception("ESP desconectou sem enviar ID.")
+            }
+
+            // --- PASSO 2: VALIDAR O ID ---
+            // Verifica se o ID recebido contém o ID que digitamos no App
+            // Usamos 'contains' para ser flexível caso a ESP mande caracteres extras ou JSON
+            if (!receivedData.contains(expectedEspId, ignoreCase = true)) {
+                throw Exception("ID Incorreto! Esperado: $expectedEspId, Recebido: $receivedData")
+            }
+
+            // --- PASSO 3: ENVIAR O JSON DE CONFIGURAÇÃO ---
+            withContext(Dispatchers.Main) {
+                callback.onStatusChanged("ID Confirmado! Enviando Configuração...")
+            }
+
             val jsonPayload = gson.toJson(config)
-            Log.d(TAG, "Enviando JSON: $jsonPayload")
+            Log.d(TAG, "Enviando: $jsonPayload")
 
-            // 2. Enviar para a ESP32
             output.println(jsonPayload)
             output.flush()
 
-            // 3. Aguardar confirmação (ACK) da ESP32 (Opcional, mas recomendado)
-            // Vamos supor que a ESP manda "OK" e fecha a conexão.
-            val response = input.readLine()
-            Log.d(TAG, "Resposta da ESP: $response")
+            // Dá tempo da ESP processar antes de fechar
+            Thread.sleep(2000)
 
             withContext(Dispatchers.Main) {
                 callback.onSuccess()
-                callback.onStatusChanged("Sucesso! Configuração enviada.\nA ESP32 deve reiniciar agora.")
             }
 
         } catch (e: Exception) {
             e.printStackTrace()
             withContext(Dispatchers.Main) {
-                callback.onError("Erro ao enviar dados: ${e.message}")
+                callback.onError("Falha no Handshake: ${e.message}")
             }
         } finally {
             socket.close()
@@ -108,9 +131,7 @@ class EspProvisioningManager {
         isRunning = false
         try {
             serverSocket?.close()
-        } catch (e: Exception) {
-            Log.e(TAG, "Erro ao fechar socket: ${e.message}")
-        }
+        } catch (e: Exception) { }
         serverSocket = null
     }
 }

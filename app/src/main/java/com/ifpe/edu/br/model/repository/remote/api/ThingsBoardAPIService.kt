@@ -1,5 +1,6 @@
 package com.ifpe.edu.br.model.repository.remote.api
 
+import com.google.gson.JsonObject
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceCredentials
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.repository.remote.dto.PageData
@@ -7,6 +8,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.repository.remote.dto.auth.LoginRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.ThingsBoardLoginResponse
 import com.ifpe.edu.br.model.repository.remote.dto.user.ThingsBoardUser
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -40,6 +42,13 @@ interface ThingsBoardAPIService {
     // O keys=latitude,longitude filtra para trazer só isso e economizar dados
     @GET("/api/plugins/telemetry/{deviceId}/values/timeseries?keys=latitude,longitude")
     suspend fun getDeviceTelemetry(@Path("deviceId") deviceId: String): Map<String, List<TelemetryValue>>
+
+    // Salvar atributos do dispositivo (usado para localização GPS)
+    @POST("/api/plugins/telemetry/{deviceId}/SERVER_SCOPE")
+    suspend fun saveDeviceAttributes(
+        @Path("deviceId") deviceId: String,
+        @Body attributes: JsonObject
+    ): Response<Void>
 }
 
 data class TelemetryValue(

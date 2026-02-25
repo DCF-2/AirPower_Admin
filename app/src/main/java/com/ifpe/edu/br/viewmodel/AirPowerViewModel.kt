@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.ifpe.edu.br.common.contracts.UIState
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.repository.Repository
-import com.ifpe.edu.br.model.repository.persistence.model.AirPowerUser
 import com.ifpe.edu.br.model.repository.remote.dto.AirPowerNotificationItem
 import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
 import com.ifpe.edu.br.model.repository.remote.dto.AllMetricsWrapper
@@ -68,8 +67,6 @@ class AirPowerViewModel(
     private val NOTIFICATIONS_JOB = "NOTIFICATIONS_JOB"
     private val DASHBOARDS_JOB = "DASHBOARDS_JOB"
 
-    private var currentAuthority: String = ""
-
     init {
         startCacheCleanupJob()
     }
@@ -85,7 +82,8 @@ class AirPowerViewModel(
                         val isTerminalState =
                             flow.value is ResultWrapper.Success ||
                                     flow.value is ResultWrapper.ApiError ||
-                                    flow.value is ResultWrapper.NetworkError
+                                    flow.value is ResultWrapper.NetworkError ||
+                                    flow.value is ResultWrapper.GenericError
                         hasNoSubscribers && isTerminalState
                     }
                     val finalSize = aggregationDataCache.size
@@ -112,6 +110,8 @@ class AirPowerViewModel(
                 UIState(Constants.UIState.STATE_LOADING)
             )
             var isAuthSuccess = false
+
+            // 1. Autenticação
             when (val authResponse = repository.authenticateDirect(user = user)) {
                 is ResultWrapper.ApiError -> {
                     delay(getTimeLeftDelay(startTime))
@@ -121,6 +121,11 @@ class AirPowerViewModel(
                     delay(getTimeLeftDelay(startTime))
                     handleNetworkError(uiStateKey)
                 }
+                is ResultWrapper.GenericError -> {
+                    delay(getTimeLeftDelay(startTime))
+                    // Usa um código genérico se disponível no enum, ou trata no else do handler
+                    handleApiError(ErrorCode.AP_GENERIC_ERROR, uiStateKey)
+                }
                 is ResultWrapper.Success<*> -> {
                     isAuthSuccess = true
                 }
@@ -129,6 +134,7 @@ class AirPowerViewModel(
 
             var isGetUserSuccess = false
             if (isAuthSuccess) {
+                // 2. Recuperar Usuário
                 when (val currentUserResponse = repository.retrieveCurrentUserDirect()) {
                     is ResultWrapper.ApiError -> {
                         delay(getTimeLeftDelay(startTime))
@@ -137,6 +143,10 @@ class AirPowerViewModel(
                     is ResultWrapper.NetworkError -> {
                         delay(getTimeLeftDelay(startTime))
                         handleNetworkError(uiStateKey)
+                    }
+                    is ResultWrapper.GenericError -> {
+                        delay(getTimeLeftDelay(startTime))
+                        handleApiError(ErrorCode.AP_GENERIC_ERROR, uiStateKey)
                     }
                     is ResultWrapper.Success<*> -> {
                         // O repositório já salvou no banco e atualizou o cache da authority
@@ -153,16 +163,6 @@ class AirPowerViewModel(
         }
     }
 
-    /**
-     * Ponto de entrada principal para a UI obter um fluxo de dados agregados.
-     *
-     * A UI chama este método com a requisição específica que deseja observar.
-     * O método retorna um StateFlow existente do cache ou cria um novo se for a primeira vez.
-     * A busca de dados em si é iniciada por um método 'fetch' separado.
-     *
-     * @param request A requisição de agregação que define os dados desejados.
-     * @return Um StateFlow que emitirá os estados (Loading, Success, Error) para essa requisição específica.
-     */
     fun getAggregatedDataState(request: AggregationRequest): StateFlow<ResultWrapper<AggDataWrapperResponse>> {
         val cacheKey = request.generateCacheKey()
         return aggregationDataCache.getOrPut(cacheKey) {
@@ -170,11 +170,6 @@ class AirPowerViewModel(
         }
     }
 
-    /**
-     * Inicia ou atualiza a busca de dados para uma requisição de agregação específica.
-     *
-     * @param request A requisição de agregação a ser executada.
-     */
     fun fetchAggregatedData(request: AggregationRequest) {
         AirPowerLog.e("TAG", "fetchAggregatedData: request: $request")
         val flow = getAggregatedDataState(request) as MutableStateFlow
@@ -184,26 +179,27 @@ class AirPowerViewModel(
             uiStateManager.setUIState(aggKey, UIState(Constants.UIState.STATE_LOADING))
             val sessionKey = Constants.UIStateKey.SESSION
             uiStateManager.setUIState(sessionKey, UIState(Constants.UIState.EMPTY_STATE))
+
             val result = repository.retrieveAllDeviceAggregatedDataWrapper(request)
+
             when (result) {
                 is ResultWrapper.ApiError -> {
                     handleApiError(result.errorCode, sessionKey)
                     handleApiError(result.errorCode, aggKey, getTimeLeftDelayCard(startTime))
                 }
-
-                ResultWrapper.Empty -> {
-
-                }
-
-                ResultWrapper.NetworkError -> {
+                is ResultWrapper.NetworkError -> {
                     handleNetworkError(sessionKey)
                     handleNetworkError(aggKey, getTimeLeftDelayCard(startTime))
                 }
-
+                is ResultWrapper.GenericError -> {
+                    handleApiError(ErrorCode.AP_GENERIC_ERROR, sessionKey)
+                    handleApiError(ErrorCode.AP_GENERIC_ERROR, aggKey, getTimeLeftDelayCard(startTime))
+                }
                 is ResultWrapper.Success<AggDataWrapperResponse> -> {
                     handleSuccess(sessionKey)
                     handleSuccess(aggKey, getTimeLeftDelayCard(startTime))
                 }
+                ResultWrapper.Empty -> { }
             }
             flow.value = result
         }
@@ -230,15 +226,15 @@ class AirPowerViewModel(
                 is ResultWrapper.ApiError -> {
                     handleApiError(refreshTokenResultWrapper.errorCode, uiStateKey)
                 }
-
                 is ResultWrapper.NetworkError -> {
                     handleNetworkError(uiStateKey)
                 }
-
+                is ResultWrapper.GenericError -> {
+                    handleApiError(ErrorCode.AP_GENERIC_ERROR, uiStateKey)
+                }
                 is ResultWrapper.Success<*> -> {
                     handleSuccess(uiStateKey)
                 }
-
                 ResultWrapper.Empty -> {}
             }
         }
@@ -295,20 +291,18 @@ class AirPowerViewModel(
             while (isActive) {
                 when (val resultWrapper = repository.retrieveDashBoardsForCurrentUser()) {
                     is ResultWrapper.ApiError -> {
-                        handleApiError(
-                            resultWrapper.errorCode,
-                            uiStateKey
-                        )
+                        handleApiError(resultWrapper.errorCode, uiStateKey)
                     }
-
-                    ResultWrapper.Empty -> {}
-                    ResultWrapper.NetworkError -> {
+                    is ResultWrapper.NetworkError -> {
                         handleNetworkError(uiStateKey)
                     }
-
+                    is ResultWrapper.GenericError -> {
+                        handleApiError(ErrorCode.AP_GENERIC_ERROR, uiStateKey)
+                    }
                     is ResultWrapper.Success<List<DashboardInfo>> -> {
                         handleSuccess(uiStateKey)
                     }
+                    ResultWrapper.Empty -> {}
                 }
                 delay(FETCH_INTERVAL_AUTO_UPDATE)
             }
@@ -323,16 +317,16 @@ class AirPowerViewModel(
                     is ResultWrapper.Success -> {
                         handleSuccess(notificationsKey)
                     }
-
                     is ResultWrapper.ApiError -> {
                         handleApiError(resultWrapper.errorCode, notificationsKey)
                     }
-
                     is ResultWrapper.NetworkError -> {
                         handleNetworkError(notificationsKey)
                     }
-
-                    else -> {}
+                    is ResultWrapper.GenericError -> {
+                        handleApiError(ErrorCode.AP_GENERIC_ERROR, notificationsKey)
+                    }
+                    ResultWrapper.Empty -> {}
                 }
                 delay(FETCH_INTERVAL_NOTIFICATION)
             }
@@ -348,17 +342,18 @@ class AirPowerViewModel(
                     is ResultWrapper.Success -> {
                         handleSuccess(deviceSummarySummaryKey)
                     }
-
                     is ResultWrapper.ApiError -> {
                         handleApiError(resultWrapper.errorCode, deviceSummarySummaryKey)
                         handleApiError(resultWrapper.errorCode, uiStateKey)
                     }
-
-                    ResultWrapper.NetworkError -> {
+                    is ResultWrapper.NetworkError -> {
                         handleNetworkError(deviceSummarySummaryKey)
                         handleNetworkError(uiStateKey)
                     }
-
+                    is ResultWrapper.GenericError -> {
+                        handleApiError(ErrorCode.AP_GENERIC_ERROR, deviceSummarySummaryKey)
+                        handleApiError(ErrorCode.AP_GENERIC_ERROR, uiStateKey)
+                    }
                     ResultWrapper.Empty -> {}
                 }
                 delay(FETCH_INTERVAL_DEVICE)
@@ -373,19 +368,20 @@ class AirPowerViewModel(
             val sessionStateKey = Constants.UIStateKey.SESSION
             val fetchMetricsKey = Constants.UIStateKey.METRICS_KEY
             uiStateManager.setUIState(fetchMetricsKey, UIState(Constants.UIState.STATE_LOADING))
+
             when (val resultWrapper = repository.fetchAllDashboardsMetricsWrapper()) {
                 is ResultWrapper.Success -> {
                     handleSuccess(sessionStateKey)
                 }
-
                 is ResultWrapper.ApiError -> {
                     handleApiError(resultWrapper.errorCode, sessionStateKey)
                 }
-
-                ResultWrapper.NetworkError -> {
+                is ResultWrapper.NetworkError -> {
                     handleNetworkError(sessionStateKey)
                 }
-
+                is ResultWrapper.GenericError -> {
+                    handleApiError(ErrorCode.AP_GENERIC_ERROR, sessionStateKey)
+                }
                 ResultWrapper.Empty -> {}
             }
             delay(getTimeLeftDelayCard(startTime))
@@ -398,15 +394,15 @@ class AirPowerViewModel(
             val uiStateKey = Constants.UIStateKey.SESSION
             when (val resultWrapper = repository.markNotificationAsRead(notificationId)) {
                 is ResultWrapper.Success -> {}
-
                 is ResultWrapper.ApiError -> {
                     handleApiError(resultWrapper.errorCode, uiStateKey)
                 }
-
-                ResultWrapper.NetworkError -> {
+                is ResultWrapper.NetworkError -> {
                     handleNetworkError(uiStateKey)
                 }
-
+                is ResultWrapper.GenericError -> {
+                    handleApiError(ErrorCode.AP_GENERIC_ERROR, uiStateKey)
+                }
                 ResultWrapper.Empty -> {}
             }
         }
@@ -425,17 +421,18 @@ class AirPowerViewModel(
                     is ResultWrapper.Success -> {
                         handleSuccess(alarmsKey)
                     }
-
                     is ResultWrapper.ApiError -> {
                         handleApiError(resultWrapper.errorCode, alarmsKey)
                         handleApiError(resultWrapper.errorCode, uiStateKey)
                     }
-
-                    ResultWrapper.NetworkError -> {
+                    is ResultWrapper.NetworkError -> {
                         handleNetworkError(alarmsKey)
                         handleNetworkError(uiStateKey)
                     }
-
+                    is ResultWrapper.GenericError -> {
+                        handleApiError(ErrorCode.AP_GENERIC_ERROR, alarmsKey)
+                        handleApiError(ErrorCode.AP_GENERIC_ERROR, uiStateKey)
+                    }
                     ResultWrapper.Empty -> {}
                 }
                 delay(FETCH_INTERVAL_ALARM)
@@ -582,5 +579,4 @@ class AirPowerViewModel(
     fun getCurrentUserAuthority(): String {
         return repository.getCachedUserAuthority()
     }
-
 }

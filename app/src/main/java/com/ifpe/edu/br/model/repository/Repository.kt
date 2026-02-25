@@ -6,6 +6,7 @@ package com.ifpe.edu.br.model.repository
 */
 import android.content.Context
 import android.content.res.Resources.NotFoundException
+import com.google.gson.JsonObject
 import com.ifpe.edu.br.core.api.ConnectionManager
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.repository.persistence.AirPowerDatabase
@@ -598,6 +599,32 @@ class Repository private constructor(context: Context) {
         } catch (e: Exception) {
             // Se der erro 404 (sem telemetria) ou outro, apenas ignoramos
             ResultWrapper.Success(null)
+        }
+    }
+
+    suspend fun saveDeviceLocation(deviceId: String, lat: Double, lng: Double): ResultWrapper<Boolean> {
+        return try {
+            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
+            val service = thingsBoardManager.getService(token)
+
+            // Cria o JSON manualmente para garantir o formato correto
+            // Ex: {"latitude": -8.05, "longitude": -34.88}
+            val jsonObject = JsonObject()
+            jsonObject.addProperty("latitude", lat)
+            jsonObject.addProperty("longitude", lng)
+
+            val response = service.saveDeviceAttributes(deviceId, jsonObject)
+
+            if (response.isSuccessful) {
+                ResultWrapper.Success(true)
+            } else {
+                // Log para debug se falhar de novo
+                AirPowerLog.e("Repository", "Erro ao salvar GPS: ${response.code()} - ${response.errorBody()?.string()}")
+                ResultWrapper.GenericError(response.code(), "Erro ao salvar local")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
         }
     }
     fun getCachedUserAuthority(): String {
