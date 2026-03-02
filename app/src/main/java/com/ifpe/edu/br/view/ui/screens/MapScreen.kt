@@ -63,10 +63,7 @@ fun MapScreen(viewModel: AdminViewModel) {
     )
 
     // Configuração da Câmera
-    val recife = LatLng(-8.05428, -34.8813)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(recife, 12f)
-    }
+    val cameraPositionState = rememberCameraPositionState()
 
     // Inicialização
     LaunchedEffect(Unit) {
@@ -76,15 +73,15 @@ fun MapScreen(viewModel: AdminViewModel) {
         }
     }
 
-    // Se tiver permissão, centraliza a câmera na sua localização
+    // Se tiver permissão, busca a localização e move a câmera
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
-                    cameraPositionState.position = CameraPosition.fromLatLngZoom(
-                        LatLng(location.latitude, location.longitude),
-                        16f // Zoom aproximado
-                    )
+                    val userLatLng = LatLng(location.latitude, location.longitude)
+
+                    // Move a câmera para a localização real com um zoom aproximado
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(userLatLng, 16f)
                 }
             }
         }

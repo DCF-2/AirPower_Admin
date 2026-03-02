@@ -15,6 +15,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.os.Build
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import java.util.Locale
 
 @Composable
 fun AdminHomeScreen(
@@ -43,7 +56,55 @@ fun AdminHomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Card de Localização / Contexto ---
+        // 1. Variáveis de estado e serviços (Coloque isto antes do seu Card)
+        val context = LocalContext.current
+        var currentLocationName by remember { mutableStateOf("Buscando...") }
+        val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+        val hasLocationPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        // 2. Efeito que traduz o GPS para Texto (Reverse Geocoding)
+        LaunchedEffect(hasLocationPermission) {
+            if (hasLocationPermission) {
+                try {
+                    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                        if (location != null) {
+                            val geocoder = Geocoder(context, Locale.getDefault())
+
+                            // O Android 13 (Tiramisu) mudou a forma como o Geocoder funciona, precisamos tratar as duas formas:
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                                    if (addresses.isNotEmpty()) {
+                                        val address = addresses[0]
+                                        val city = address.subAdminArea ?: address.locality ?: "Local"
+                                        currentLocationName = city
+                                    }
+                                }
+                            } else {
+                                @Suppress("DEPRECATION")
+                                val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                                if (!addresses.isNullOrEmpty()) {
+                                    val address = addresses[0]
+                                    val city = address.subAdminArea ?: address.locality ?: "Local"
+                                    currentLocationName = city
+                                }
+                            }
+                        } else {
+                            currentLocationName = "GPS Indisponível"
+                        }
+                    }
+                } catch (e: Exception) {
+                    currentLocationName = "Erro ao buscar local"
+                }
+            } else {
+                currentLocationName = "Localização Protegida"
+            }
+        }
+
+        // 3. O seu Card atualizado
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -56,7 +117,7 @@ fun AdminHomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.LocationOn, // Certifique-se de importar LocationOn
+                    imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp)
                 )
@@ -67,7 +128,7 @@ fun AdminHomeScreen(
                         style = MaterialTheme.typography.labelMedium
                     )
                     Text(
-                        text = "IFPE - Laboratório de IoT", // Aqui futuramente podemos pegar do GPS
+                        text = currentLocationName, // <--- A MÁGICA ACONTECE AQUI!
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     )
