@@ -74,23 +74,20 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun fetchLocationsForDevices(devices: List<ThingsBoardDevice>) {
         viewModelScope.launch {
-            val locationsMap = mutableMapOf<String, LatLng>()
-
-            // Para cada dispositivo, busca a telemetria
-            // Dica de performance: Em produção com 1000 devices, isso deve ser feito em lotes ou websocket.
-            // Para < 100 devices, esse loop funciona bem.
+            // Em vez de esperar por todos, processamos um por um
             devices.forEach { device ->
                 val locResult = repository.getDeviceLocation(device.id.id)
                 if (locResult is ResultWrapper.Success && locResult.value != null) {
                     val (lat, lon) = locResult.value!!
-                    // Filtra coordenadas zeradas ou inválidas (comum em GPS desligado)
+                    // Filtra coordenadas zeradas ou inválidas
                     if (lat != 0.0 && lon != 0.0) {
-                        locationsMap[device.id.id] = LatLng(lat, lon)
+                        // ATUALIZA A TELA IMEDIATAMENTE (Pino a Pino)
+                        val currentMap = _deviceLocations.value.toMutableMap()
+                        currentMap[device.id.id] = LatLng(lat, lon)
+                        _deviceLocations.value = currentMap // O Compose vai desenhar o pino na hora!
                     }
                 }
             }
-            // Atualiza o mapa na UI
-            _deviceLocations.value = locationsMap
         }
     }
 

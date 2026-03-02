@@ -570,38 +570,6 @@ class Repository private constructor(context: Context) {
             ResultWrapper.NetworkError
         }
     }
-
-    // Função para buscar Latitude e Longitude de um dispositivo específico
-    suspend fun getDeviceLocation(deviceId: String): ResultWrapper<Pair<Double, Double>?> {
-        return try {
-            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
-            val service = thingsBoardManager.getService(token)
-
-            // Chama a API de telemetria
-            val telemetryMap = service.getDeviceTelemetry(deviceId)
-
-            // Extrai os valores (o ThingsBoard retorna strings, precisamos converter)
-            val latStr = telemetryMap["latitude"]?.firstOrNull()?.value
-            val lonStr = telemetryMap["longitude"]?.firstOrNull()?.value
-
-            if (latStr != null && lonStr != null) {
-                val lat = latStr.toDoubleOrNull()
-                val lon = lonStr.toDoubleOrNull()
-
-                if (lat != null && lon != null) {
-                    ResultWrapper.Success(Pair(lat, lon))
-                } else {
-                    ResultWrapper.Success(null) // Tem as chaves, mas valores inválidos
-                }
-            } else {
-                ResultWrapper.Success(null) // Não tem localização cadastrada
-            }
-        } catch (e: Exception) {
-            // Se der erro 404 (sem telemetria) ou outro, apenas ignoramos
-            ResultWrapper.Success(null)
-        }
-    }
-
     suspend fun saveDeviceLocation(deviceId: String, lat: Double, lng: Double): ResultWrapper<Boolean> {
         return try {
             val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
@@ -613,7 +581,7 @@ class Repository private constructor(context: Context) {
             jsonObject.addProperty("latitude", lat)
             jsonObject.addProperty("longitude", lng)
 
-            val response = service.saveDeviceAttributes(deviceId, jsonObject)
+            val response = service.saveDeviceTelemetry(deviceId, jsonObject)
 
             if (response.isSuccessful) {
                 ResultWrapper.Success(true)
@@ -627,6 +595,62 @@ class Repository private constructor(context: Context) {
             ResultWrapper.NetworkError
         }
     }
+
+    // Função para buscar Latitude e Longitude de um dispositivo específico
+    suspend fun getDeviceLocation(deviceId: String): ResultWrapper<Pair<Double, Double>?> {
+        return try {
+            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
+            val service = thingsBoardManager.getService(token)
+
+            val response = service.getDeviceTelemetry(deviceId)
+
+            if (response.isSuccessful) {
+                val telemetryMap = response.body()
+
+                if (telemetryMap != null) {
+                    try {
+                        val latElement = telemetryMap.get("latitude")
+                        val lonElement = telemetryMap.get("longitude")
+
+                        if (latElement != null && latElement.isJsonArray && latElement.asJsonArray.size() > 0 &&
+                            lonElement != null && lonElement.isJsonArray && lonElement.asJsonArray.size() > 0) {
+
+                            // Pegamos o objeto de valor bruto primeiro
+                            val latVal = latElement.asJsonArray.get(0).asJsonObject.get("value")
+                            val lonVal = lonElement.asJsonArray.get(0).asJsonObject.get("value")
+
+                            // VERIFICAÇÃO DE SEGURANÇA: Só tenta converter se NÃO for nulo!
+                            if (!latVal.isJsonNull && !lonVal.isJsonNull) {
+                                val latStr = latVal.asString
+                                val lonStr = lonVal.asString
+
+                                val lat = latStr.toDoubleOrNull()
+                                val lon = lonStr.toDoubleOrNull()
+
+                                if (lat != null && lon != null) {
+                                    return ResultWrapper.Success(Pair(lat, lon)) // SUCESSO! Tem pino!
+                                }
+                            }
+                        }
+                        // Se for nulo ou vazio, ignora em silêncio
+                        return ResultWrapper.Success(null)
+
+                    } catch (e: Exception) {
+                        AirPowerLog.e("Repository", "Erro ao processar JSON: ${e.message}")
+                        return ResultWrapper.Success(null)
+                    }
+                } else {
+                    return ResultWrapper.Success(null)
+                }
+            } else {
+                return ResultWrapper.Success(null)
+            }
+        } catch (e: Exception) {
+            AirPowerLog.e("Repository", "Erro na requisição de localização: ${e.message}")
+            return ResultWrapper.Success(null)
+        }
+    }
+
     fun getCachedUserAuthority(): String {
         return cachedAuthority
     }

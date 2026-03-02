@@ -38,16 +38,17 @@ interface ThingsBoardAPIService {
     @GET("/api/tenant/deviceInfos?pageSize=1000&page=0")
     suspend fun getTenantDevices(): PageData<ThingsBoardDevice>
 
-    // Buscar telemetria específica (latitude, longitude)
-    // O keys=latitude,longitude filtra para trazer só isso e economizar dados
-    @GET("/api/plugins/telemetry/{deviceId}/values/timeseries?keys=latitude,longitude")
-    suspend fun getDeviceTelemetry(@Path("deviceId") deviceId: String): Map<String, List<TelemetryValue>>
+    // Busca os últimos valores de latitude e longitude da TELEMETRIA
+    @GET("/api/plugins/telemetry/DEVICE/{deviceId}/values/timeseries?keys=latitude,longitude")
+    suspend fun getDeviceTelemetry(
+        @Path("deviceId") deviceId: String
+    ): Response<JsonObject>
 
     // Salvar atributos do dispositivo (usado para localização GPS)
-    @POST("/api/plugins/telemetry/{deviceId}/SERVER_SCOPE")
-    suspend fun saveDeviceAttributes(
+    @POST("/api/plugins/telemetry/DEVICE/{deviceId}/timeseries/ANY")
+    suspend fun saveDeviceTelemetry(
         @Path("deviceId") deviceId: String,
-        @Body attributes: JsonObject
+        @Body telemetry: JsonObject
     ): Response<Void>
 }
 
