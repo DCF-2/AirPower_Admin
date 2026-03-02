@@ -52,23 +52,27 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     // Cliente de GPS
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
 
+    // --- ESTADOS PARA DETALHES E EXCLUSÃO ---
+    private val _selectedDeviceTelemetry = MutableStateFlow<Map<String, String>>(emptyMap())
+    val selectedDeviceTelemetry = _selectedDeviceTelemetry.asStateFlow()
+
+    private val _selectedDeviceAttributes = MutableStateFlow<Map<String, String>>(emptyMap())
+    val selectedDeviceAttributes = _selectedDeviceAttributes.asStateFlow()
+
     // --- 1. LISTAGEM DE DISPOSITIVOS + LOCALIZAÇÃO ---
     fun fetchDevices() {
         viewModelScope.launch {
-            _isLoading.value = true
-
             val result = repository.getTenantDevices()
 
-            if (result is ResultWrapper.Success) {
-                val devices = result.value
-                _devicesList.value = devices
+            if (result is ResultWrapper.Success && result.value != null) {
+                // A MÁGICA DE FORÇAR O COMPOSE A REDESENHAR ESTÁ AQUI:
+                // Em vez de só .toList(), nós mapeamos (clonamos) a lista inteira
+                val novaListaForcada = result.value.map { device ->
+                    device.copy() // Força a criação de um novo objeto na memória
+                }
 
-                // Após baixar a lista, inicia a busca de localizações em background
-                fetchLocationsForDevices(devices)
-            } else {
-                _devicesList.value = emptyList()
+                _devicesList.value = novaListaForcada
             }
-            _isLoading.value = false
         }
     }
 
@@ -235,6 +239,36 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         _selectedDevice.value = null
         _isLoading.value = false
         // Se tiver outras variáveis de estado para limpar, adicione aqui
+    }
+
+    // Função para buscar dados ao clicar no Card
+    fun fetchDeviceDetails(deviceId: String) {
+        // Limpa os antigos enquanto carrega
+        _selectedDeviceTelemetry.value = emptyMap()
+        _selectedDeviceAttributes.value = emptyMap()
+
+        viewModelScope.launch {
+            val result = repository.getDeviceDetails(deviceId)
+            if (result is ResultWrapper.Success) {
+                _selectedDeviceTelemetry.value = result.value.first
+                _selectedDeviceAttributes.value = result.value.second
+            }
+        }
+    }
+
+    // Função para excluir
+    fun deleteDevice(deviceId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = repository.deleteDevice(deviceId)
+            if (result is ResultWrapper.Success) {
+                // Remove o dispositivo da lista atual na tela
+                val currentList = _devicesList.value.toMutableList()
+                currentList.removeAll { it.id.id == deviceId }
+                _devicesList.value = currentList
+            }
+            _isLoading.value = false
+        }
     }
 
     fun stopSocket() {

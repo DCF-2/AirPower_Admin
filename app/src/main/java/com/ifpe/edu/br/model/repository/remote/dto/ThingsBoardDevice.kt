@@ -9,8 +9,9 @@ data class ThingsBoardDevice(
     @SerializedName("id") val id: DeviceId,
     @SerializedName("createdTime") val createdTime: Long,
     @SerializedName("name") val name: String,
-    @SerializedName("type") val type: String,
-    @SerializedName("label") val label: String?
+    @SerializedName("type") val type: String? = null,
+    @SerializedName("label") val label: String?,
+    @SerializedName("active") val active: Boolean? = null
 )
 
 data class DeviceId(

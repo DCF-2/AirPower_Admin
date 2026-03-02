@@ -651,6 +651,69 @@ class Repository private constructor(context: Context) {
         }
     }
 
+    suspend fun deleteDevice(deviceId: String): ResultWrapper<Boolean> {
+        return try {
+            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
+            val service = thingsBoardManager.getService(token)
+
+            val response = service.deleteDevice(deviceId)
+            if (response.isSuccessful) {
+                ResultWrapper.Success(true)
+            } else {
+                AirPowerLog.e("Repository", "Erro ao deletar: ${response.code()}")
+                ResultWrapper.GenericError(response.code(), "Erro ao excluir dispositivo")
+            }
+        } catch (e: Exception) {
+            AirPowerLog.e("Repository", "Erro na exclusão: ${e.message}")
+            ResultWrapper.NetworkError
+        }
+    }
+    // Retorna um Pair: O primeiro mapa é a Telemetria, o segundo são os Atributos
+    suspend fun getDeviceDetails(deviceId: String): ResultWrapper<Pair<Map<String, String>, Map<String, String>>> {
+        return try {
+            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
+            val service = thingsBoardManager.getService(token)
+
+            val telemetryMap = mutableMapOf<String, String>()
+            val attributesMap = mutableMapOf<String, String>()
+
+            // 1. Busca Telemetria
+            val teleResponse = service.getAllDeviceTelemetry(deviceId)
+            if (teleResponse.isSuccessful) {
+                val body = teleResponse.body()
+                if (body != null) {
+                    body.keySet().forEach { key ->
+                        val array = body.getAsJsonArray(key)
+                        if (array != null && array.size() > 0) {
+                            val value = array.get(0).asJsonObject.get("value").asString
+                            telemetryMap[key] = value
+                        }
+                    }
+                }
+            }
+
+            // 2. Busca Atributos
+            val attrResponse = service.getDeviceAttributes(deviceId)
+            if (attrResponse.isSuccessful) {
+                val body = attrResponse.body()
+                if (body != null && body.isJsonArray) {
+                    body.asJsonArray.forEach { element ->
+                        val obj = element.asJsonObject
+                        val key = obj.get("key").asString
+                        val value = obj.get("value").asString
+                        attributesMap[key] = value
+                    }
+                }
+            }
+
+            ResultWrapper.Success(Pair(telemetryMap, attributesMap))
+
+        } catch (e: Exception) {
+            AirPowerLog.e("Repository", "Erro ao buscar detalhes: ${e.message}")
+            ResultWrapper.Success(Pair(emptyMap(), emptyMap())) // Retorna vazio em vez de crashar
+        }
+    }
+
     fun getCachedUserAuthority(): String {
         return cachedAuthority
     }

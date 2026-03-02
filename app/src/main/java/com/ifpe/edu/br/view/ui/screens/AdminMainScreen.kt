@@ -133,7 +133,7 @@ fun AdminMainScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { /* Todo: Atualizar Global */ }) {
+                        IconButton(onClick = { viewModel.fetchDevices() }) {
                             Icon(Icons.Default.Refresh, contentDescription = "Atualizar")
                         }
                     }
