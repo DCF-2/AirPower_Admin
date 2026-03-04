@@ -78,7 +78,7 @@ fun SplashScreen(
 
     if (updateSessionUIState.value.state == Constants.UIState.STATE_SUCCESS) {
         viewModel.resetUIState(updateSessionStateKey)
-        navigateMainActivity(navController, componentActivity)
+        navigateMainActivity(navController, componentActivity, viewModel)
     } else {
         if (updateSessionUIState.value.state != Constants.UIState.EMPTY_STATE) {
             if (viewModel.isUserLoggedIn()) {
@@ -155,7 +155,7 @@ private fun AuthScreenPostDelayed(
             Constants.UIState.STATE_SUCCESS -> {
                 hasNavigated = true
                 viewModel.resetUIState(stateKey)
-                navigateMainActivity(navController, componentActivity)
+                navigateMainActivity(navController, componentActivity, viewModel)
             }
         }
     }
@@ -163,13 +163,28 @@ private fun AuthScreenPostDelayed(
 
 private fun navigateMainActivity(
     navController: NavController,
-    componentActivity: ComponentActivity
+    componentActivity: ComponentActivity,
+    viewModel: AirPowerViewModel
 ) {
     navController.popBackStack()
-    AirPowerUtil.launchActivity(
-        navController.context,
-        MainActivity::class.java
-    )
+
+    // Lê o crachá do utilizador cacheado no ViewModel ou no Banco
+    val authority = viewModel.getCurrentUserAuthority()
+
+    if (authority == "TENANT_ADMIN") {
+        // Vai para a tela de Administração
+        AirPowerUtil.launchActivity(
+            navController.context,
+            com.ifpe.edu.br.view.AdminActivity::class.java
+        )
+    } else {
+        // Vai para a tela do Usuário Comum
+        AirPowerUtil.launchActivity(
+            navController.context,
+            MainActivity::class.java
+        )
+    }
+
     componentActivity.finish()
 }
 

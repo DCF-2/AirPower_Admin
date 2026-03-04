@@ -69,7 +69,7 @@ class EspProvisioningManager {
 
     private suspend fun handleClientHandshake(
         socket: Socket,
-        config: EspConfiguration,
+        config: EspConfiguration, 
         expectedEspId: String,
         callback: ProvisioningCallback
     ) {
@@ -82,8 +82,6 @@ class EspProvisioningManager {
                 callback.onStatusChanged("Conectado! Aguardando ID da ESP...")
             }
 
-            // Lê a primeira linha que a ESP mandar.
-            // A ESP deve mandar algo como: "ESP32_DEVICE_ID_XYZ" ou um JSON.
             val receivedData = input.readLine()
 
             Log.d(TAG, "Recebido da ESP: $receivedData")
@@ -93,9 +91,13 @@ class EspProvisioningManager {
             }
 
             // --- PASSO 2: VALIDAR O ID ---
-            // Verifica se o ID recebido contém o ID que digitamos no App
-            // Usamos 'contains' para ser flexível caso a ESP mande caracteres extras ou JSON
             if (!receivedData.contains(expectedEspId, ignoreCase = true)) {
+                // Avisar a ESP que ela foi rejeitada antes de fechar a porta!
+                val rejectJson = "{\"status\":\"error\", \"message\":\"ID_REJECTED\"}"
+                output.println(rejectJson)
+                output.flush()
+                Thread.sleep(500) // Dá tempo do pacote chegar na ESP
+
                 throw Exception("ID Incorreto! Esperado: $expectedEspId, Recebido: $receivedData")
             }
 
@@ -126,7 +128,6 @@ class EspProvisioningManager {
             socket.close()
         }
     }
-
     fun stopServer() {
         isRunning = false
         try {

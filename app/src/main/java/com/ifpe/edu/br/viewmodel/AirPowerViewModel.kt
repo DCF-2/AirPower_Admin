@@ -575,8 +575,16 @@ class AirPowerViewModel(
         }
     }
 
-    // Método para a AuthScreen consultar se é admin
+    // metodo para a AuthScreen consultar se é admin
     fun getCurrentUserAuthority(): String {
-        return repository.getCachedUserAuthority()
+        // 1. Tenta pegar o que está no cache da memória (útil logo após o login manual)
+        val cachedAuthority = repository.getCachedUserAuthority()
+        if (cachedAuthority.isNotEmpty()) {
+            return cachedAuthority
+        }
+
+        // 2. Se a memória estiver vazia (app acabou de abrir), busca no banco de dados local!
+        val dbAuthority = repository.getLoggedUserAuthoritySync()
+        return dbAuthority ?: "CUSTOMER_USER" // Retorna comum como fallback seguro
     }
 }

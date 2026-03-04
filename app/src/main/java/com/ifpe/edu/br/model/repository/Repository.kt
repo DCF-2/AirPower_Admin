@@ -717,4 +717,14 @@ class Repository private constructor(context: Context) {
     fun getCachedUserAuthority(): String {
         return cachedAuthority
     }
+
+    // Busca a autoridade diretamente do banco de dados (ideal para a SplashScreen)
+    fun getLoggedUserAuthoritySync(): String? {
+        val allUsers = userDao.findAll()
+        return if (allUsers.isNotEmpty()) {
+            allUsers[0].authority
+        } else {
+            null
+        }
+    }
 }

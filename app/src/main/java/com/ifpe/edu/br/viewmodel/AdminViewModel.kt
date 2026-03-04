@@ -169,6 +169,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         val cleanHost = java.net.URI(THINGS_BOARD_BASE_URL).host ?: "10.0.0.1" // Fallback seguro
 
         val config = EspConfiguration(
+            targetId = targetEspId,
             targetSsid = targetWifiSsid,
             targetPassword = targetWifiPassword,
             deviceToken = currentToken,
