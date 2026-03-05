@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import com.ifpe.edu.br.common.components.CustomInputText
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.model.Constants
+import com.ifpe.edu.br.view.ui.components.EspSelectionBottomSheet
 import com.ifpe.edu.br.viewmodel.AdminViewModel
 
 @Composable
@@ -26,6 +27,11 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
     val selectedDevice by viewModel.selectedDevice.collectAsState()
     val status by viewModel.provisioningStatus.collectAsState()
     val context = LocalContext.current
+
+    // --- Estados de escolha da eps32---
+    val showEspSelection by viewModel.showEspSelection.collectAsState()
+    val discoveredEsps by viewModel.discoveredEsps.collectAsState()
+    val isSearchingEsps by viewModel.isSearchingEsps.collectAsState()
 
     // Estados do Wizard
     var step by remember { mutableStateOf(0) }
@@ -80,6 +86,24 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
         )
     }
 
+    // --- MÓDULO 1: MODAL DE ESCOLHA DA ESP32 ---
+    if (showEspSelection) {
+        EspSelectionBottomSheet(
+            discoveredDevices = discoveredEsps,
+            isSearching = isSearchingEsps,
+            onDismiss = { viewModel.closeEspSelectionModal() },
+            onDeviceSelected = { espEscolhida ->
+                viewModel.proceedToNetworkModule(espEscolhida)
+                // IMPORTANTE: Ao escolher a placa, nós avançamos o Wizard para o Passo 1 (Wi-Fi)
+                espId = espEscolhida.id // Preenche automaticamente o ID na tela de Wi-Fi!
+                step = 1
+            },
+            onBlinkTest = { espParaPiscar ->
+                viewModel.testBlinkLed(espParaPiscar.ip)
+            }
+        )
+    }
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
 
         if (step == 0) {
@@ -117,7 +141,11 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                         Text("Encontrado!", style = MaterialTheme.typography.labelLarge)
                         Text(selectedDevice!!.name, style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = { step = 1 }) {
+
+                        // MUDANÇA AQUI: Em vez de step = 1, abre o modal da ESP
+                        Button(onClick = {
+                            viewModel.openEspSelectionModal()
+                        }) {
                             Text("Vincular a este dispositivo")
                         }
                     }
@@ -128,8 +156,9 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                 Text("Nenhum dispositivo encontrado aqui.", style = MaterialTheme.typography.bodyMedium)
                 Button(
                     onClick = {
+                        // A função createDevice no ViewModel (que ajustámos antes)
+                        // vai chamar o openEspSelectionModal() sozinha quando o ThingsBoard responder.
                         viewModel.createDevice("AirPower ${locationInput}", location = locationInput)
-                        step = 1
                     },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 ) {

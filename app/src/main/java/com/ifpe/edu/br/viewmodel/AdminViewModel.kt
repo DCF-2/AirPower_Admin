@@ -8,6 +8,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.Constants.Constants.THINGS_BOARD_BASE_URL
+import com.ifpe.edu.br.model.provisioning.DiscoveredEsp
 import com.ifpe.edu.br.model.provisioning.EspConfiguration
 import com.ifpe.edu.br.model.provisioning.EspProvisioningManager
 import com.ifpe.edu.br.model.repository.Repository
@@ -15,10 +16,17 @@ import com.ifpe.edu.br.model.repository.remote.dto.DeviceCredentials
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.util.ResultWrapper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.net.SocketTimeoutException
 
 class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -58,6 +66,131 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedDeviceAttributes = MutableStateFlow<Map<String, String>>(emptyMap())
     val selectedDeviceAttributes = _selectedDeviceAttributes.asStateFlow()
+
+    // --- DESCOBERTA DE ESP32 ---
+    private val _showEspSelection = MutableStateFlow(false)
+    val showEspSelection = _showEspSelection.asStateFlow()
+
+    private val _isSearchingEsps = MutableStateFlow(false)
+    val isSearchingEsps = _isSearchingEsps.asStateFlow()
+
+    private val _discoveredEsps = MutableStateFlow<List<DiscoveredEsp>>(emptyList())
+    val discoveredEsps = _discoveredEsps.asStateFlow()
+
+    // Variáveis de controle do Socket UDP
+    private var udpSocket: DatagramSocket? = null
+    private var isListeningUdp = false
+    private val UDP_PORT = 8888 // A porta que vamos usar para conversar com a ESP
+
+    fun openEspSelectionModal() {
+        _showEspSelection.value = true
+        startUdpListener() // Inicia a escuta da rede de verdade
+    }
+
+    fun closeEspSelectionModal() {
+        _showEspSelection.value = false
+        stopUdpListener()
+    }
+
+    private fun startUdpListener() {
+        _isSearchingEsps.value = true
+        isListeningUdp = true
+        _discoveredEsps.value = emptyList()
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Abre o socket para ouvir na porta 8888
+                udpSocket = DatagramSocket(UDP_PORT)
+                udpSocket?.soTimeout = 2000 // Timeout de 2 segundos para o loop não travar
+
+                val buffer = ByteArray(1024)
+                val packet = DatagramPacket(buffer, buffer.size)
+
+                while (isListeningUdp) {
+                    try {
+                        udpSocket?.receive(packet)
+
+                        // Extrai a mensagem de texto e o IP de quem enviou
+                        val message = String(packet.data, 0, packet.length).trim()
+                        val senderIp = packet.address.hostAddress
+
+                        // Tenta ler o JSON. Esperamos algo como: {"id": "12345"}
+                        if (message.startsWith("{") && senderIp != null) {
+                            val json = JSONObject(message)
+                            val espId = json.optString("id", "")
+
+                            if (espId.isNotEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    val currentList = _discoveredEsps.value.toMutableList()
+                                    // Adiciona à lista apenas se esse IP ainda não estiver lá
+                                    if (currentList.none { it.ip == senderIp }) {
+                                        currentList.add(DiscoveredEsp(id = espId, ip = senderIp))
+                                        _discoveredEsps.value = currentList
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: SocketTimeoutException) {
+                        // Timeout normal (ninguém gritou nesses 2 segundos), apenas continua escutando
+                        continue
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                udpSocket?.close()
+                withContext(Dispatchers.Main) {
+                    _isSearchingEsps.value = false
+                }
+            }
+        }
+    }
+
+    private fun stopUdpListener() {
+        isListeningUdp = false
+        udpSocket?.close() // Bate a porta para forçar a saída imediata do loop
+        _isSearchingEsps.value = false
+    }
+
+    fun testBlinkLed(ipAddress: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Envia o comando UDP real para a placa específica
+                val socket = DatagramSocket()
+                val message = "{\"comando\":\"blink\"}".toByteArray()
+                val address = InetAddress.getByName(ipAddress)
+                val packet = DatagramPacket(message, message.size, address, UDP_PORT)
+                socket.send(packet)
+                socket.close()
+
+                // 2. Faz o efeito visual na UI (piscar a lâmpada na tela)
+                withContext(Dispatchers.Main) {
+                    val currentList = _discoveredEsps.value.toMutableList()
+                    val index = currentList.indexOfFirst { it.ip == ipAddress }
+                    if (index != -1) {
+                        currentList[index] = currentList[index].copy(isBlinking = true)
+                        _discoveredEsps.value = currentList
+
+                        delay(3000) // Mantém a lâmpada acesa no App por 3 seg
+
+                        currentList[index] = currentList[index].copy(isBlinking = false)
+                        _discoveredEsps.value = currentList
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun proceedToNetworkModule(esp: DiscoveredEsp) {
+        closeEspSelectionModal()
+        this.targetEspId = esp.id
+        this.targetEspIdInput = esp.id
+        _provisioningStatus.value = "ESP selecionada. Aguardando escolha do Wi-Fi..."
+    }
 
     // --- 1. LISTAGEM DE DISPOSITIVOS + LOCALIZAÇÃO ---
     fun fetchDevices() {
@@ -135,6 +268,8 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             if (result is ResultWrapper.Success) {
                 _selectedDevice.value = result.value
                 fetchCredentials(result.value.id.id)
+                //O ThingsBoard deu OK? Abre a caça à ESP32!
+                openEspSelectionModal()
             }
             _isLoading.value = false
         }
