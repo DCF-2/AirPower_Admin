@@ -1,13 +1,19 @@
 package com.ifpe.edu.br.viewmodel
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Application
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.Constants.Constants.THINGS_BOARD_BASE_URL
+import com.ifpe.edu.br.model.provisioning.AllowedNetwork
 import com.ifpe.edu.br.model.provisioning.DiscoveredEsp
 import com.ifpe.edu.br.model.provisioning.EspConfiguration
 import com.ifpe.edu.br.model.provisioning.EspProvisioningManager
@@ -81,6 +87,85 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     private var udpSocket: DatagramSocket? = null
     private var isListeningUdp = false
     private val UDP_PORT = 8888 // A porta que vamos usar para conversar com a ESP
+
+    // --- VARREDURA WI-FI ---
+    private val _availableNetworks = MutableStateFlow<List<AllowedNetwork>>(emptyList())
+    val availableNetworks = _availableNetworks.asStateFlow()
+
+    private val _isScanningWifi = MutableStateFlow(false)
+    val isScanningWifi = _isScanningWifi.asStateFlow()
+
+    // Usamos o contexto da aplicação para pegar o serviço de Wi-Fi
+    private val wifiManager = application.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+    fun scanForAuthorizedNetworks() {
+        viewModelScope.launch {
+            _isScanningWifi.value = true
+            _provisioningStatus.value = "Buscando redes autorizadas..."
+
+            // 1. A TRAVA DE SEGURANÇA: Verifica se a permissão foi concedida
+            val hasPermission = ContextCompat.checkSelfPermission(
+                getApplication(), // Como usamos AndroidViewModel, temos o Application Context
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasPermission) {
+                _provisioningStatus.value = "Erro: Permissão de localização necessária para ler Wi-Fi."
+                _isScanningWifi.value = false
+                return@launch // Aborta a varredura se não tiver permissão
+            }
+
+            try {
+                // 2. Pega as redes secretas da API (Mock)
+                val allowedNetworks = repository.getPreRegisteredNetworks()
+
+                // 3. Dispara a varredura do hardware do celular
+                wifiManager.startScan()
+
+                // Dá um tempinho para o hardware do celular ouvir as redes (1.5s costuma ser suficiente)
+                delay(1500)
+
+                // 4. Lê o que o celular encontrou voando pelo ar (Agora é 100% seguro)
+                val scanResults = wifiManager.scanResults
+
+                // 5. O Cruzamento/Match
+                val matchedNetworks = mutableListOf<AllowedNetwork>()
+
+                for (allowed in allowedNetworks) {
+                    // Existe alguma rede no ar com o mesmo nome (SSID)?
+                    val foundInAir = scanResults.find { it.SSID == allowed.ssid }
+
+                    if (foundInAir != null) {
+                        matchedNetworks.add(allowed.copy(signalLevel = foundInAir.level))
+                    }
+                }
+                matchedNetworks.sortByDescending { it.signalLevel }
+                _availableNetworks.value = matchedNetworks
+
+                if (matchedNetworks.isEmpty()) {
+                    _provisioningStatus.value = "Nenhuma rede registrada próxima."
+                } else {
+                    _provisioningStatus.value = "Redes encontradas! Escolha uma."
+                }
+
+            } catch (e: SecurityException) {
+                // Captura qualquer exceção de segurança de versões antigas do Android
+                _provisioningStatus.value = "Erro de segurança ao ler Wi-Fi."
+            } finally {
+                _isScanningWifi.value = false
+            }
+        }
+    }
+
+    // Quando o usuário clicar no Card da rede na tela:
+    fun selectNetworkAndProceed(network: AllowedNetwork) {
+        // Preenchemos as variáveis secretamente sem o usuário digitar nada!
+        this.targetWifiSsid = network.ssid
+        this.targetWifiPassword = network.password
+
+        _provisioningStatus.value = "Rede ${network.ssid} selecionada."
+    }
+
 
     fun openEspSelectionModal() {
         _showEspSelection.value = true

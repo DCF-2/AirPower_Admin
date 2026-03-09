@@ -5,14 +5,17 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ifpe.edu.br.common.components.CustomInputText
@@ -33,11 +36,15 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
     val discoveredEsps by viewModel.discoveredEsps.collectAsState()
     val isSearchingEsps by viewModel.isSearchingEsps.collectAsState()
 
+    // --- Estados de conexão (WI-FI) ---
+    val availableNetworks by viewModel.availableNetworks.collectAsState()
+    val isScanningWifi by viewModel.isScanningWifi.collectAsState()
+
     // Estados do Wizard
     var step by remember { mutableStateOf(0) }
     var locationInput by remember { mutableStateOf("") }
-    var wifiSsid by remember { mutableStateOf("") }
-    var wifiPass by remember { mutableStateOf("") }
+
+    // NOTA: wifiSsid e wifiPass foram removidos da UI. O ViewModel os gerencia secretamente.
     var espId by remember { mutableStateOf("") } // ID da ESP no Hotspot
 
     // Verifica se a etapa do socket terminou com sucesso (flag definida no ViewModel)
@@ -51,7 +58,7 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            // Se deu permissão, abre o diálogo de confirmação
+            // Se o usuário clicou numa rede E deu permissão, abre o diálogo final de confirmação
             showConfirmationDialog = true
         }
     }
@@ -66,15 +73,12 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                         "2. Certifique-se que a ESP32 está ligada.\n" +
                         "3. O SSID do Hotspot deve ser: airp\n" +
                         "4. A senha do Hotspot deve ser: suicr7ap\n\n" +
-                        "Deseja iniciar o servidor de configuração?")
+                        "Deseja iniciar o servidor de configuração para a rede escolhida?")
             },
             confirmButton = {
                 Button(
                     onClick = {
                         showConfirmationDialog = false
-                        // Passa os dados para o ViewModel antes de iniciar
-                        viewModel.targetWifiSsid = wifiSsid
-                        viewModel.targetWifiPassword = wifiPass
                         viewModel.targetEspIdInput = espId
                         viewModel.sendConfigurationToEsp()
                     }
@@ -102,6 +106,13 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                 viewModel.testBlinkLed(espParaPiscar.ip)
             }
         )
+    }
+
+    // --- MÓDULO 2: DISPARO AUTOMÁTICO DO SCANNER ---
+    LaunchedEffect(step) {
+        if (step == 1 && !isSocketSuccess) {
+            viewModel.scanForAuthorizedNetworks()
+        }
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -142,7 +153,6 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                         Text(selectedDevice!!.name, style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(8.dp))
 
-                        // MUDANÇA AQUI: Em vez de step = 1, abre o modal da ESP
                         Button(onClick = {
                             viewModel.openEspSelectionModal()
                         }) {
@@ -156,8 +166,6 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                 Text("Nenhum dispositivo encontrado aqui.", style = MaterialTheme.typography.bodyMedium)
                 Button(
                     onClick = {
-                        // A função createDevice no ViewModel (que ajustámos antes)
-                        // vai chamar o openEspSelectionModal() sozinha quando o ThingsBoard responder.
                         viewModel.createDevice("AirPower ${locationInput}", location = locationInput)
                     },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
@@ -183,58 +191,79 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
             }
 
             if (!isSocketSuccess) {
-                // --- FASE 2.A: Conexão via Hotspot ---
+                // --- FASE 2.A: Conexão via Hotspot & ESCOLHA DE REDE ---
 
                 Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     Column(Modifier.padding(16.dp)) {
                         Text("Dispositivo Alvo:", style = MaterialTheme.typography.labelMedium)
                         Text(selectedDevice?.name ?: "Novo", style = MaterialTheme.typography.titleMedium)
-                        Divider(Modifier.padding(vertical = 8.dp))
-                        Text("Token: ${viewModel.currentToken}", style = MaterialTheme.typography.bodySmall)
+                        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                        Text("ID da Placa Física: $espId", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                CustomInputText(
-                    value = espId,
-                    onValueChange = { espId = it },
-                    label = "ID da ESP32 (ex: ESP32_01)",
-                    placeholder = "Digite o ID que a ESP envia no Handshake",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                CustomInputText(
-                    value = wifiSsid,
-                    onValueChange = { wifiSsid = it },
-                    label = "SSID da Rede IoT (Wi-Fi da escola)",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
+                Text("Selecione a Rede Wi-Fi:", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
 
-                CustomInputText(
-                    value = wifiPass,
-                    onValueChange = { wifiPass = it },
-                    label = "Senha da Rede IoT",
-                    isPassword = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(Modifier.height(24.dp))
-
-                RectButton(
-                    text = "Iniciar Configuração (Hotspot)",
-                    onClick = {
-                        // Verifica permissão de GPS antes de prosseguir
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                            showConfirmationDialog = true
-                        } else {
-                            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                // --- UI DO SCANNER WI-FI ---
+                if (isScanningWifi) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(Modifier.height(8.dp))
+                            Text("A varrer o ambiente...", style = MaterialTheme.typography.bodySmall)
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    }
+                } else if (availableNetworks.isEmpty()) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Nenhuma rede autorizada encontrada aqui.", color = MaterialTheme.colorScheme.onErrorContainer)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = { viewModel.scanForAuthorizedNetworks() }) {
+                                Text("Tentar Novamente")
+                            }
+                        }
+                    }
+                } else {
+                    // Lista Inteligente de Redes
+                    availableNetworks.forEach { network ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    // 1. O ViewModel guarda a senha e o SSID secretamente
+                                    viewModel.selectNetworkAndProceed(network)
+
+                                    // 2. Dispara a verificação de permissão e abre o Dialog do Hotspot
+                                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                                        showConfirmationDialog = true
+                                    } else {
+                                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                    }
+                                },
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Default.Wifi,
+                                    contentDescription = "Wi-Fi"
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(network.ssid, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Text("Local: ${network.location}", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                }
 
             } else {
                 // --- FASE 2.B: Salvar GPS (Internet) ---
@@ -265,11 +294,9 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                     // Botão Finalizar
                     Button(
                         onClick = {
-                            // Reseta para o início ou volta para home
                             step = 0
                             locationInput = ""
                             viewModel.resetUIState(Constants.UIStateKey.SESSION)
-                            // Opcional: Navegar para Home
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)

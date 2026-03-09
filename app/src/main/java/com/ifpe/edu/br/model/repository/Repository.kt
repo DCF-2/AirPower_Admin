@@ -9,6 +9,7 @@ import android.content.res.Resources.NotFoundException
 import com.google.gson.JsonObject
 import com.ifpe.edu.br.core.api.ConnectionManager
 import com.ifpe.edu.br.model.Constants
+import com.ifpe.edu.br.model.provisioning.AllowedNetwork
 import com.ifpe.edu.br.model.repository.persistence.AirPowerDatabase
 import com.ifpe.edu.br.model.repository.persistence.manager.JWTManager
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
@@ -726,5 +727,21 @@ class Repository private constructor(context: Context) {
         } else {
             null
         }
+    }
+
+    // MOCK DA FUTURA API DE REDES WI-FI
+    suspend fun getPreRegisteredNetworks(): List<AllowedNetwork> {
+        // Simula o tempo de resposta da internet
+        kotlinx.coroutines.delay(1000)
+
+        // Mude os SSIDs abaixo para o nome real da rede da sua casa/laboratório para conseguir testar!
+        return listOf(
+            AllowedNetwork("GPSERS_IoT2", "A2024@GPSERS", "Rede 2 Laboratório Dexter/GPSERS"),
+            AllowedNetwork("AlunosGPSERS2024", "GPSERSSTUDENTS2024", "Rede Estudantes 2024"),
+            AllowedNetwork("Capricche-Industria", "Cr@cker@2023", "Rede Capricche"),
+            AllowedNetwork("GPSERS_IoT", "A2024@GPSERS", "Rede 1 Laboratório Dexter/GPSERS"),
+            AllowedNetwork("AlunosGPSERS2023", "GPSERSSTUDENTS2023", "Rede Estudantes 2023"),
+            AllowedNetwork("IFPE/RECIFE", "ifpe@082021", "Rede Publica IFPE")
+        )
     }
 }
