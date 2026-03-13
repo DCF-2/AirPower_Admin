@@ -447,42 +447,6 @@ class Repository private constructor(context: Context) {
         }
     }
 
-    suspend fun registerDevice(device: DeviceRegistration): ResultWrapper<ThingsBoardDevice> {
-        return try {
-            val tokenObject = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_AIR_POWER_SERVER)
-            val tokenString = tokenObject?.token
-
-            if (tokenString.isNullOrEmpty()) {
-                return ResultWrapper.ApiError(ErrorCode.AP_JWT_EXPIRED)
-            }
-
-            val service = thingsBoardManager.getService(tokenString)
-            val result = service.registerDevice(device)
-            ResultWrapper.Success(result)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ResultWrapper.NetworkError
-        }
-    }
-
-    suspend fun getDeviceCredentials(deviceId: String): ResultWrapper<DeviceCredentials> {
-        return try {
-            val tokenObject = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_AIR_POWER_SERVER)
-            val tokenString = tokenObject?.token
-
-            if (tokenString.isNullOrEmpty()) {
-                return ResultWrapper.ApiError(ErrorCode.AP_JWT_EXPIRED)
-            }
-
-            val service = thingsBoardManager.getService(tokenString)
-            val result = service.getDeviceCredentials(deviceId)
-            ResultWrapper.Success(result)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ResultWrapper.NetworkError
-        }
-    }
-
     suspend fun authenticateDirect(user: AuthUser): ResultWrapper<Token> {
         return try {
             val service = thingsBoardManager.getService(null)
@@ -556,46 +520,6 @@ class Repository private constructor(context: Context) {
         }
     }
 
-    suspend fun getTenantDevices(): ResultWrapper<List<ThingsBoardDevice>> {
-        return try {
-            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
-            val service = thingsBoardManager.getService(token)
-
-            // Chama a API real
-            val pageData = service.getTenantDevices()
-
-            // Retorna apenas a lista de dados
-            ResultWrapper.Success(pageData.data)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ResultWrapper.NetworkError
-        }
-    }
-    suspend fun saveDeviceLocation(deviceId: String, lat: Double, lng: Double): ResultWrapper<Boolean> {
-        return try {
-            val token = JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
-            val service = thingsBoardManager.getService(token)
-
-            // Cria o JSON manualmente para garantir o formato correto
-            // Ex: {"latitude": -8.05, "longitude": -34.88}
-            val jsonObject = JsonObject()
-            jsonObject.addProperty("latitude", lat)
-            jsonObject.addProperty("longitude", lng)
-
-            val response = service.saveDeviceTelemetry(deviceId, jsonObject)
-
-            if (response.isSuccessful) {
-                ResultWrapper.Success(true)
-            } else {
-                // Log para debug se falhar de novo
-                AirPowerLog.e("Repository", "Erro ao salvar GPS: ${response.code()} - ${response.errorBody()?.string()}")
-                ResultWrapper.GenericError(response.code(), "Erro ao salvar local")
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ResultWrapper.NetworkError
-        }
-    }
 
     // Função para buscar Latitude e Longitude de um dispositivo específico
     suspend fun getDeviceLocation(deviceId: String): ResultWrapper<Pair<Double, Double>?> {
@@ -729,19 +653,4 @@ class Repository private constructor(context: Context) {
         }
     }
 
-    // MOCK DA FUTURA API DE REDES WI-FI
-    suspend fun getPreRegisteredNetworks(): List<AllowedNetwork> {
-        // Simula o tempo de resposta da internet
-        kotlinx.coroutines.delay(1000)
-
-        // Mude os SSIDs abaixo para o nome real da rede da sua casa/laboratório para conseguir testar!
-        return listOf(
-            AllowedNetwork("GPSERS_IoT2", "A2024@GPSERS", "Rede 2 Laboratório Dexter/GPSERS"),
-            AllowedNetwork("AlunosGPSERS2024", "GPSERSSTUDENTS2024", "Rede Estudantes 2024"),
-            AllowedNetwork("Capricche-Industria", "Cr@cker@2023", "Rede Capricche"),
-            AllowedNetwork("GPSERS_IoT", "A2024@GPSERS", "Rede 1 Laboratório Dexter/GPSERS"),
-            AllowedNetwork("AlunosGPSERS2023", "GPSERSSTUDENTS2023", "Rede Estudantes 2023"),
-            AllowedNetwork("IFPE/RECIFE", "ifpe@082021", "Rede Publica IFPE")
-        )
-    }
 }

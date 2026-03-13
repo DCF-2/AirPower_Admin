@@ -17,6 +17,7 @@ import com.ifpe.edu.br.model.provisioning.AllowedNetwork
 import com.ifpe.edu.br.model.provisioning.DiscoveredEsp
 import com.ifpe.edu.br.model.provisioning.EspConfiguration
 import com.ifpe.edu.br.model.provisioning.EspProvisioningManager
+import com.ifpe.edu.br.model.repository.AdminRepository
 import com.ifpe.edu.br.model.repository.Repository
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceCredentials
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
@@ -105,7 +106,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
             // 1. A TRAVA DE SEGURANÇA: Verifica se a permissão foi concedida
             val hasPermission = ContextCompat.checkSelfPermission(
-                getApplication(), // Como usamos AndroidViewModel, temos o Application Context
+                getApplication(),
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
 
@@ -116,8 +117,8 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             try {
-                // 2. Pega as redes secretas da API (Mock)
-                val allowedNetworks = repository.getPreRegisteredNetworks()
+                // 2. Pega as redes da API Real (Retorna um ResultWrapper)
+                val result = AdminRepository.getInstance().getAuthorizedNetworks()
 
                 // 3. Dispara a varredura do hardware do celular
                 wifiManager.startScan()
@@ -125,27 +126,35 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 // Dá um tempinho para o hardware do celular ouvir as redes (1.5s costuma ser suficiente)
                 delay(1500)
 
-                // 4. Lê o que o celular encontrou voando pelo ar (Agora é 100% seguro)
+                // 4. Lê o que o celular encontrou voando pelo ar
                 val scanResults = wifiManager.scanResults
-
-                // 5. O Cruzamento/Match
                 val matchedNetworks = mutableListOf<AllowedNetwork>()
 
-                for (allowed in allowedNetworks) {
-                    // Existe alguma rede no ar com o mesmo nome (SSID)?
-                    val foundInAir = scanResults.find { it.SSID == allowed.ssid }
+                // 5. Verifica se a API respondeu com SUCESSO antes de fazer o loop
+                if (result is ResultWrapper.Success) {
+                    val allowedNetworks = result.value // Aqui tiramos a Lista de dentro do Wrapper!
 
-                    if (foundInAir != null) {
-                        matchedNetworks.add(allowed.copy(signalLevel = foundInAir.level))
+                    // O Cruzamento/Match
+                    for (allowed in allowedNetworks) {
+                        // Existe alguma rede no ar com o mesmo nome (SSID)?
+                        val foundInAir = scanResults.find { it.SSID == allowed.ssid }
+
+                        if (foundInAir != null) {
+                            matchedNetworks.add(allowed.copy(signalLevel = foundInAir.level))
+                        }
                     }
-                }
-                matchedNetworks.sortByDescending { it.signalLevel }
-                _availableNetworks.value = matchedNetworks
 
-                if (matchedNetworks.isEmpty()) {
-                    _provisioningStatus.value = "Nenhuma rede registrada próxima."
+                    matchedNetworks.sortByDescending { it.signalLevel }
+                    _availableNetworks.value = matchedNetworks
+
+                    if (matchedNetworks.isEmpty()) {
+                        _provisioningStatus.value = "Nenhuma rede registrada próxima."
+                    } else {
+                        _provisioningStatus.value = "Redes encontradas! Escolha uma."
+                    }
                 } else {
-                    _provisioningStatus.value = "Redes encontradas! Escolha uma."
+                    // Se a API falhou (ex: sem internet para falar com o Docker)
+                    _provisioningStatus.value = "Erro ao buscar redes do servidor."
                 }
 
             } catch (e: SecurityException) {
@@ -280,7 +289,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     // --- 1. LISTAGEM DE DISPOSITIVOS + LOCALIZAÇÃO ---
     fun fetchDevices() {
         viewModelScope.launch {
-            val result = repository.getTenantDevices()
+            val result = AdminRepository.getInstance().getTenantDevices()
 
             if (result is ResultWrapper.Success && result.value != null) {
                 // A MÁGICA DE FORÇAR O COMPOSE A REDESENHAR ESTÁ AQUI:
@@ -319,7 +328,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
 
             // Busca dados frescos do servidor
-            val result = repository.getTenantDevices()
+            val result = AdminRepository.getInstance().getTenantDevices()
 
             if (result is ResultWrapper.Success) {
                 val devices = result.value
@@ -348,7 +357,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             // Adicionamos a localização no Label ou AdditionalInfo
             val deviceDto = DeviceRegistration(name = name, type = type, label = location)
-            val result = repository.registerDevice(deviceDto)
+            val result = AdminRepository.getInstance().registerDevice(deviceDto)
 
             if (result is ResultWrapper.Success) {
                 _selectedDevice.value = result.value
@@ -362,7 +371,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun fetchCredentials(deviceId: String) {
         viewModelScope.launch {
-            val result = repository.getDeviceCredentials(deviceId)
+            val result = AdminRepository.getInstance().getDeviceCredentials(deviceId)
             if (result is ResultWrapper.Success) {
                 currentToken = result.value.credentialsId ?: ""
             }
@@ -434,7 +443,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 if (location != null) {
                     _provisioningStatus.value = "Enviando para nuvem..."
                     viewModelScope.launch {
-                        val result = repository.saveDeviceLocation(deviceId, location.latitude, location.longitude)
+                        val result =AdminRepository.getInstance().saveDeviceLocation(deviceId, location.latitude, location.longitude)
                         if (result is ResultWrapper.Success) {
                             _provisioningStatus.value = "FINALIZADO: Configurado e Localizado!"
                         } else {
