@@ -1,5 +1,9 @@
 package com.ifpe.edu.br.view.ui.screens
 
+/*
+* Refactored for: AirPower Admin (BFF Integration)
+*/
+
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -7,7 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,7 +21,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.ifpe.edu.br.common.components.CustomInputText
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.view.ui.components.EspSelectionBottomSheet
@@ -31,39 +33,28 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
     val status by viewModel.provisioningStatus.collectAsState()
     val context = LocalContext.current
 
-    // --- Estados de escolha da eps32---
     val showEspSelection by viewModel.showEspSelection.collectAsState()
     val discoveredEsps by viewModel.discoveredEsps.collectAsState()
     val isSearchingEsps by viewModel.isSearchingEsps.collectAsState()
 
-    // --- Estados de conexão (WI-FI) ---
     val availableNetworks by viewModel.availableNetworks.collectAsState()
     val isScanningWifi by viewModel.isScanningWifi.collectAsState()
 
-    // Estados do Wizard
     var step by remember { mutableStateOf(0) }
     var locationInput by remember { mutableStateOf("") }
+    var espId by remember { mutableStateOf("") }
 
-    // NOTA: wifiSsid e wifiPass foram removidos da UI. O ViewModel os gerencia secretamente.
-    var espId by remember { mutableStateOf("") } // ID da ESP no Hotspot
-
-    // Verifica se a etapa do socket terminou com sucesso (flag definida no ViewModel)
     val isSocketSuccess = status == "SUCESSO_SOCKET" || status.contains("FINALIZADO")
-
-    // Controle do Alerta de Ativação
     var showConfirmationDialog by remember { mutableStateOf(false) }
 
-    // Launcher de Permissão de GPS
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            // Se o usuário clicou numa rede E deu permissão, abre o diálogo final de confirmação
             showConfirmationDialog = true
         }
     }
 
-    // --- ALERTA DE CONFIRMAÇÃO ---
     if (showConfirmationDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmationDialog = false },
@@ -90,7 +81,6 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
         )
     }
 
-    // --- MÓDULO 1: MODAL DE ESCOLHA DA ESP32 ---
     if (showEspSelection) {
         EspSelectionBottomSheet(
             discoveredDevices = discoveredEsps,
@@ -98,8 +88,7 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
             onDismiss = { viewModel.closeEspSelectionModal() },
             onDeviceSelected = { espEscolhida ->
                 viewModel.proceedToNetworkModule(espEscolhida)
-                // IMPORTANTE: Ao escolher a placa, nós avançamos o Wizard para o Passo 1 (Wi-Fi)
-                espId = espEscolhida.id // Preenche automaticamente o ID na tela de Wi-Fi!
+                espId = espEscolhida.id
                 step = 1
             },
             onBlinkTest = { espParaPiscar ->
@@ -108,7 +97,6 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
         )
     }
 
-    // --- MÓDULO 2: DISPARO AUTOMÁTICO DO SCANNER ---
     LaunchedEffect(step) {
         if (step == 1 && !isSocketSuccess) {
             viewModel.scanForAuthorizedNetworks()
@@ -118,30 +106,28 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
 
         if (step == 0) {
-            // --- PASSO 1: Localização ---
             Text("Onde estamos?", style = MaterialTheme.typography.headlineSmall)
             Text("Vamos verificar se já existe um sensor nesta sala.", style = MaterialTheme.typography.bodyMedium)
 
             Spacer(Modifier.height(24.dp))
 
-            CustomInputText(
+            // Usando TextField nativo do Material3 para evitar problemas com os Customs antigos
+            OutlinedTextField(
                 value = locationInput,
                 onValueChange = { locationInput = it },
-                label = "Local (Ex: Laboratório 1)",
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Local (Ex: Laboratório 1)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
 
             Spacer(Modifier.height(16.dp))
 
             RectButton(
                 text = "Buscar Dispositivo",
-                onClick = {
-                    viewModel.checkLocationAndFindDevice(locationInput)
-                },
+                onClick = { viewModel.checkLocationAndFindDevice(locationInput) },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Resultado da Busca
             if (selectedDevice != null) {
                 Spacer(Modifier.height(24.dp))
                 Card(
@@ -153,31 +139,24 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                         Text(selectedDevice!!.name, style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(8.dp))
 
-                        Button(onClick = {
-                            viewModel.openEspSelectionModal()
-                        }) {
+                        Button(onClick = { viewModel.openEspSelectionModal() }) {
                             Text("Vincular a este dispositivo")
                         }
                     }
                 }
             } else if (!isLoading && locationInput.isNotEmpty()) {
-                // Sugestão de Criar
                 Spacer(Modifier.height(24.dp))
                 Text("Nenhum dispositivo encontrado aqui.", style = MaterialTheme.typography.bodyMedium)
                 Button(
-                    onClick = {
-                        viewModel.createDevice("AirPower ${locationInput}", location = locationInput)
-                    },
+                    onClick = { viewModel.createDevice("AirPower ${locationInput}", location = locationInput) },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 ) {
                     Text("Criar Novo Dispositivo")
                 }
             }
         } else {
-            // --- PASSO 2: Configurar Conexão ---
             Text("Configurar Sensor", style = MaterialTheme.typography.headlineSmall)
 
-            // Console de Status (Sempre visível para acompanhar o processo)
             Card(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.Black)
@@ -191,8 +170,6 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
             }
 
             if (!isSocketSuccess) {
-                // --- FASE 2.A: Conexão via Hotspot & ESCOLHA DE REDE ---
-
                 Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     Column(Modifier.padding(16.dp)) {
                         Text("Dispositivo Alvo:", style = MaterialTheme.typography.labelMedium)
@@ -205,7 +182,6 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                 Text("Selecione a Rede Wi-Fi:", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
 
-                // --- UI DO SCANNER WI-FI ---
                 if (isScanningWifi) {
                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -228,17 +204,13 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                         }
                     }
                 } else {
-                    // Lista Inteligente de Redes
                     availableNetworks.forEach { network ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                                 .clickable {
-                                    // 1. O ViewModel guarda a senha e o SSID secretamente
                                     viewModel.selectNetworkAndProceed(network)
-
-                                    // 2. Dispara a verificação de permissão e abre o Dialog do Hotspot
                                     if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                                         showConfirmationDialog = true
                                     } else {
@@ -266,8 +238,6 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                 }
 
             } else {
-                // --- FASE 2.B: Salvar GPS (Internet) ---
-
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -285,18 +255,15 @@ fun SetupDeviceWizard(viewModel: AdminViewModel) {
                 if (!status.contains("FINALIZADO")) {
                     RectButton(
                         text = "Já tenho Internet: Salvar GPS",
-                        onClick = {
-                            viewModel.saveLocationToThingsBoard()
-                        },
+                        onClick = { viewModel.saveLocationToThingsBoard() },
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
-                    // Botão Finalizar
                     Button(
                         onClick = {
                             step = 0
                             locationInput = ""
-                            viewModel.resetUIState(Constants.UIStateKey.SESSION)
+                            viewModel.resetUIState(null)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)

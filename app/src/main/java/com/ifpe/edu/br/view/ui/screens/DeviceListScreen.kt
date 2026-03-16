@@ -1,5 +1,9 @@
 package com.ifpe.edu.br.view.ui.screens
 
+/*
+* Refactored for: AirPower Admin (BFF Integration)
+*/
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material.icons.filled.Search
@@ -27,68 +30,31 @@ import kotlinx.coroutines.delay
 @Composable
 fun DeviceListScreen(viewModel: AdminViewModel) {
     val devices by viewModel.devicesList.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-    // Estados da Tela
     var searchQuery by remember { mutableStateOf("") }
     var deviceToShowDetails by remember { mutableStateOf<ThingsBoardDevice?>(null) }
-    var deviceToDelete by remember { mutableStateOf<ThingsBoardDevice?>(null) }
 
     LaunchedEffect(Unit) {
         while (true) {
             viewModel.fetchDevices()
-            // Aguarda 10 segundos e repete o ciclo infinito silenciosamente
-            // 10 segundos é o tempo ideal para ser "tempo real" sem sobrecarregar o servidor
             delay(10000)
         }
     }
 
-    // Filtra a lista com base na barra de pesquisa (ignora maiúsculas/minúsculas)
     val filteredDevices = devices.filter {
         it.name.contains(searchQuery, ignoreCase = true) ||
                 (it.type?.contains(searchQuery, ignoreCase = true) == true)
     }
 
-    // --- MODAL DE EXCLUSÃO (PERIGO) ---
-    if (deviceToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { deviceToDelete = null },
-            title = { Text("Excluir Permanentemente?") },
-            text = {
-                Text(
-                    "Tem certeza que deseja apagar o dispositivo '${deviceToDelete?.name}'?\n\n" +
-                            "Esta ação não tem volta. Todos os históricos de telemetria e vínculos serão perdidos."
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.deleteDevice(deviceToDelete!!.id.id)
-                        deviceToDelete = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Sim, Apagar", color = MaterialTheme.colorScheme.onError)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deviceToDelete = null }) { Text("Cancelar") }
-            }
-        )
-    }
-
-    // --- MODAL DE DETALHES ---
     if (deviceToShowDetails != null) {
         DeviceDetailsModal(
             device = deviceToShowDetails!!,
-            viewModel = viewModel,
             onDismiss = { deviceToShowDetails = null }
         )
     }
 
-    // --- CORPO DA TELA ---
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-
-        // 1. Barra de Pesquisa
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -105,7 +71,6 @@ fun DeviceListScreen(viewModel: AdminViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 2. Cabeçalho e Contador
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -118,18 +83,17 @@ fun DeviceListScreen(viewModel: AdminViewModel) {
                 color = MaterialTheme.colorScheme.onBackground
             )
 
-            // Novo Contador (Estilo "Pill" moderno com ícone)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), // Fundo suave
-                        shape = RoundedCornerShape(50) // Arredondamento total (Pílula)
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(50)
                     )
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Router, // O mesmo ícone dos cards, ou use Icons.Default.Devices
+                    imageVector = Icons.Default.Router,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp)
@@ -146,8 +110,11 @@ fun DeviceListScreen(viewModel: AdminViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Lista de Dispositivos (Cards)
-        if (filteredDevices.isEmpty()) {
+        if (isLoading && devices.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (filteredDevices.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(if (searchQuery.isNotEmpty()) "Nenhum resultado para a busca." else "Nenhum dispositivo encontrado.", color = Color.Gray)
             }
@@ -157,10 +124,8 @@ fun DeviceListScreen(viewModel: AdminViewModel) {
                     DeviceCardItem(
                         device = device,
                         onClick = {
-                            viewModel.fetchDeviceDetails(device.id.id)
                             deviceToShowDetails = device
-                        },
-                        onDeleteClick = { deviceToDelete = device }
+                        }
                     )
                 }
             }
@@ -168,16 +133,13 @@ fun DeviceListScreen(viewModel: AdminViewModel) {
     }
 }
 
-// Subcomponente: O Visual do Card
 @Composable
 fun DeviceCardItem(
     device: ThingsBoardDevice,
-    onClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onClick: () -> Unit
 ) {
-    // Trata valores nulos com padrões seguros
-    val isActive = device.active ?: false // Pega do JSON ("active": true/false)
-    val typeName = device.type ?: "Sensor IoT" // Pega do JSON o tipo de perfil
+    val isActive = device.active ?: false
+    val typeName = device.type ?: "Dispositivo IoT"
 
     Card(
         modifier = Modifier
@@ -190,7 +152,6 @@ fun DeviceCardItem(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ícone do Dispositivo (Arredondado)
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -198,7 +159,7 @@ fun DeviceCardItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Router, // Ícone moderno
+                    imageVector = Icons.Default.Router,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -206,7 +167,6 @@ fun DeviceCardItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Textos (Nome, Tipo e Status)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = device.name,
@@ -224,7 +184,6 @@ fun DeviceCardItem(
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    // Bolinha de Status (Verde = Ativo, Cinza = Inativo)
                     Box(
                         modifier = Modifier
                             .size(8.dp)
@@ -238,29 +197,15 @@ fun DeviceCardItem(
                     )
                 }
             }
-
-            // Lixeira
-            IconButton(onClick = onDeleteClick) {
-                Icon(
-                    imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = "Deletar",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
         }
     }
 }
 
-// O Modal de detalhes permanece igual ao anterior
 @Composable
 fun DeviceDetailsModal(
     device: ThingsBoardDevice,
-    viewModel: AdminViewModel,
     onDismiss: () -> Unit
 ) {
-    val telemetry by viewModel.selectedDeviceTelemetry.collectAsState()
-    val attributes by viewModel.selectedDeviceAttributes.collectAsState()
-
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -276,21 +221,15 @@ fun DeviceDetailsModal(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Última Telemetria:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Detalhes do Dispositivo:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                if (telemetry.isEmpty()) Text("Sem dados recentes.", style = MaterialTheme.typography.bodySmall)
-                telemetry.forEach { (key, value) ->
-                    Text("• $key: $value", style = MaterialTheme.typography.bodyMedium)
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Text("• Tipo: ${device.type ?: "Desconhecido"}", style = MaterialTheme.typography.bodyMedium)
+                Text("• Label: ${device.label ?: "Não definido"}", style = MaterialTheme.typography.bodyMedium)
+                Text("• ID Interno: ${device.id.id}", style = MaterialTheme.typography.bodyMedium)
 
-                Text("Atributos de Servidor:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                if (attributes.isEmpty()) Text("Nenhum atributo definido.", style = MaterialTheme.typography.bodySmall)
-                attributes.forEach { (key, value) ->
-                    Text("• $key: $value", style = MaterialTheme.typography.bodyMedium)
-                }
+                val isActive = device.active ?: false
+                Text("• Status: ${if (isActive) "Online" else "Offline"}", style = MaterialTheme.typography.bodyMedium)
 
                 Spacer(modifier = Modifier.height(24.dp))
 

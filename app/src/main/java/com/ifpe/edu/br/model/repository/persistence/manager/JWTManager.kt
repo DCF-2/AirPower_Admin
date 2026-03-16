@@ -1,11 +1,7 @@
 package com.ifpe.edu.br.model.repository.persistence.manager
 
-/*
-* Trabalho de conclusão de curso - IFPE 2025
-* Author: Willian Santos
-* Project: AirPower Costumer
-*/
-import com.ifpe.edu.br.model.repository.Repository
+
+import com.ifpe.edu.br.model.repository.AdminRepository
 import com.ifpe.edu.br.model.repository.persistence.model.AirPowerToken
 import com.ifpe.edu.br.model.repository.remote.dto.auth.Token
 import com.ifpe.edu.br.model.util.AirPowerLog
@@ -14,7 +10,7 @@ import java.util.Base64
 
 object JWTManager {
     private val TAG = JWTManager::class.java.simpleName
-    private val repository: Repository = Repository.getInstance()
+    private val repository: AdminRepository = AdminRepository.getInstance()
 
     suspend fun handleAuthentication(
         connectionId: Int,
