@@ -1,9 +1,7 @@
 package com.ifpe.edu.br.view.ui.screens
 
 /*
-* Trabalho de conclusão de curso - IFPE 2025
-* Author: Willian Santos
-* Project: AirPower Costumer
+* Refactored for: AirPower Admin
 */
 
 import androidx.activity.ComponentActivity
@@ -16,11 +14,6 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,33 +25,29 @@ import com.ifpe.edu.br.common.CommonConstants
 import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.FailureDialog
 import com.ifpe.edu.br.common.components.RoundedImageIcon
-import com.ifpe.edu.br.common.contracts.UIState
 import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.model.Constants
+import com.ifpe.edu.br.model.repository.persistence.manager.JWTManager
+import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.util.AirPowerUtil
-import com.ifpe.edu.br.view.MainActivity
+import com.ifpe.edu.br.view.AdminActivity
 import com.ifpe.edu.br.view.ui.components.CustomFullScreenGradientBackground
-import com.ifpe.edu.br.viewmodel.AirPowerViewModel
+import com.ifpe.edu.br.viewmodel.AdminViewModel
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
     navController: NavHostController,
-    viewModel: AirPowerViewModel,
+    viewModel: AdminViewModel,
     componentActivity: ComponentActivity
 ) {
-    val updateSessionStateKey = Constants.UIStateKey.REFRESH_TOKEN_KEY
-    val updateSessionUIState = viewModel.uiStateManager.observeUIState(updateSessionStateKey)
-        .collectAsState(initial = UIState(Constants.UIState.EMPTY_STATE))
-
     val theme = MaterialTheme.colorScheme
     CustomFullScreenGradientBackground(
         listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f))
     )
 
     CustomColumn(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         alignmentStrategy = CommonConstants.Ui.ALIGNMENT_CENTER,
         layouts = listOf {
             Spacer(modifier = Modifier.padding(vertical = 100.dp))
@@ -68,128 +57,44 @@ fun SplashScreen(
                 modifier = Modifier.wrapContentSize()
             )
             Spacer(modifier = Modifier.padding(vertical = 100.dp))
-            AuthScreenPostDelayed(
-                navController = navController,
-                viewModel = viewModel,
-                componentActivity = componentActivity
-            )
         }
     )
 
-    if (updateSessionUIState.value.state == Constants.UIState.STATE_SUCCESS) {
-        viewModel.resetUIState(updateSessionStateKey)
-        navigateMainActivity(navController, componentActivity, viewModel)
-    } else {
-        if (updateSessionUIState.value.state != Constants.UIState.EMPTY_STATE) {
-            if (viewModel.isUserLoggedIn()) {
-                ExpiredSessionWarningScreen(viewModel, updateSessionStateKey, navController)
-            } else {
-                viewModel.resetUIState(updateSessionStateKey)
-                navigateAuthScreen(navController)
-            }
+    // Efeito para verificar o token assim que a tela abre
+    LaunchedEffect(Unit) {
+        delay(1500) // Dá tempo do usuário ver a logo bonita
+
+        val isFirstRun = SharedPrefManager.getInstance(componentActivity).isFirstRun
+        if (isFirstRun) {
+            navigateAuthScreen(navController)
+            return@LaunchedEffect
+        }
+
+        // Verifica o banco local
+        val isExpired = JWTManager.isTokenExpiredForConnection(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)
+
+        if (!isExpired) {
+            navigateAdminActivity(navController, componentActivity)
+        } else {
+            navigateAuthScreen(navController)
         }
     }
 }
 
-@Composable
-fun ExpiredSessionWarningScreen(
-    viewModel: AirPowerViewModel,
-    sessionStateKey: String,
-    navController: NavHostController
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f))
-    ) {
-        FailureDialog(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxSize(),
-            drawableResId = R.drawable.auth_issue,
-            iconSize = 150.dp,
-            text = "A sessão expirou, faça login novamente",
-            textColor = AirPowerTheme.color.onBackground,
-            retryCallback = {
-                viewModel.resetUIState(sessionStateKey)
-                navigateAuthScreen(navController)
-            }
-        ) {
-            val theme = MaterialTheme.colorScheme
-            CustomFullScreenGradientBackground(
-                modifier = it,
-                listColor = listOf(theme.background, theme.background.copy(alpha = 0.6f))
-            )
-        }
-    }
-}
-
-@Composable
-private fun AuthScreenPostDelayed(
+private fun navigateAdminActivity(
     navController: NavController,
-    viewModel: AirPowerViewModel,
     componentActivity: ComponentActivity
 ) {
-    var hasNavigated by rememberSaveable { mutableStateOf(false) }
-    val hasCheckedToken = rememberSaveable { mutableStateOf(false) }
-    val stateKey = Constants.UIStateKey.SESSION
-    val sessionState = viewModel.uiStateManager.observeUIState(stateKey)
-        .collectAsState(initial = UIState(Constants.UIState.EMPTY_STATE))
-
-    LaunchedEffect(hasCheckedToken.value) {
-        if (!hasCheckedToken.value) {
-            delay(1500)
-            viewModel.isSessionExpired()
-            hasCheckedToken.value = true
-        }
-    }
-
-    if (!hasNavigated) {
-        when (sessionState.value.state) {
-            Constants.UIState.STATE_REFRESH_TOKEN -> {
-                hasNavigated = true
-                viewModel.resetUIState(stateKey)
-                viewModel.updateSession()
-            }
-
-            Constants.UIState.STATE_SUCCESS -> {
-                hasNavigated = true
-                viewModel.resetUIState(stateKey)
-                navigateMainActivity(navController, componentActivity, viewModel)
-            }
-        }
-    }
-}
-
-private fun navigateMainActivity(
-    navController: NavController,
-    componentActivity: ComponentActivity,
-    viewModel: AirPowerViewModel
-) {
     navController.popBackStack()
-
-    // Lê o crachá do utilizador cacheado no ViewModel ou no Banco
-    val authority = viewModel.getCurrentUserAuthority()
-
-    if (authority == "TENANT_ADMIN") {
-        // Vai para a tela de Administração
-        AirPowerUtil.launchActivity(
-            navController.context,
-            com.ifpe.edu.br.view.AdminActivity::class.java
-        )
-    } else {
-        // Vai para a tela do Usuário Comum
-        AirPowerUtil.launchActivity(
-            navController.context,
-            MainActivity::class.java
-        )
-    }
-
+    AirPowerUtil.launchActivity(
+        navController.context,
+        AdminActivity::class.java
+    )
     componentActivity.finish()
 }
 
 private fun navigateAuthScreen(navController: NavController) {
-    navController.navigate(Constants.Navigation.NAVIGATION_AUTH) {
-        popUpTo(Constants.Navigation.NAVIGATION_INITIAL) { inclusive = true }
+    navController.navigate("AUTH") {
+        popUpTo("SPLASH") { inclusive = true }
     }
 }

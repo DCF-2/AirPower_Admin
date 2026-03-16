@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AirPower Costumer"
+rootProject.name = "AirPower Admin"
 include(":app")
 include(":common")
 include(":core")

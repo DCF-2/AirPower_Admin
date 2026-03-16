@@ -19,7 +19,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.ifpe.edu.br"
+        applicationId = "com.lab.dexter.gpsers.airpower.admin"
         minSdk = 30
         targetSdk = 35
         versionCode = 1

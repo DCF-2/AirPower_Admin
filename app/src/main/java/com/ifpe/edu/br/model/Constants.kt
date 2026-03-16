@@ -1,35 +1,25 @@
 package com.ifpe.edu.br.model
 
-/*
-* Trabalho de conclusão de curso - IFPE 2025
-* Author: Willian Santos
-* Project: AirPower Costumer
-*/
 class Constants {
 
-    object ResponseErrorCode {
-        // --- Erros Mapeados do ThingsBoard (2xxx) ---
-        const val TB_INVALID_CREDENTIALS = 20
-        const val TB_REFRESH_TOKEN_EXPIRED = 21
-        const val TB_GENERIC_ERROR = 22
+    object AppConfig {
+        // A chave de identificação deste app no banco de dados
+        const val APP_CLIENT_NAME = "Airpower_Admin"
+        // Chave do SharedPreferences para o IP dinâmico da nossa API Proxy
+        const val PREF_PROXY_URL_KEY = "PROXY_BASE_URL"
+    }
 
-        // --- Autenticação AirPower (3xxx) ---
+    object ResponseErrorCode {
+        // --- Autenticação AirPower ---
         const val AP_JWT_EXPIRED = 30
         const val AP_REFRESH_TOKEN_EXPIRED = 31
         const val AP_GENERIC_ERROR = 32
 
-        // --- Erros Genéricos (9xxx) ---
+        // --- Erros Genéricos ---
         const val UNKNOWN_INTERNAL_ERROR = 90
-
         const val SUCCESS = 0
         const val EMPTY_STATE_MESSAGE = ""
         const val EMPTY_STATE_CODE = -1
-    }
-
-    object Constants {
-
-       //URL base do ThingsBoard
-        const val THINGS_BOARD_BASE_URL = "https://10.5.0.66:8080"
     }
 
     object UIState {
@@ -64,18 +54,6 @@ class Constants {
         const val DASHBOARDS_KEY = "DASHBOARDS_KEY"
     }
 
-    @Deprecated("Replace with navigation approach")
-    object Navigation {
-        const val NAVIGATION_INITIAL = "START"
-        const val NAVIGATION_MAIN = "MAIN"
-        const val NAVIGATION_AUTH = "AUTH"
-    }
-
-    object ServerConnectionIds {
-        const val CONNECTION_ID_THINGSBOARD = 1
-        const val CONNECTION_ID_AIR_POWER_SERVER = 2
-    }
-
     object ResKeys {
         const val KEY_COD_DRAWABLE: String = "drawable"
     }
@@ -84,9 +62,8 @@ class Constants {
         const val READ = "READ"
     }
 
-    @Deprecated("Replace with new approach")
-    object DeprecatedValues {
-        const val THINGS_BOARD_ERROR_CODE_TOKEN_EXPIRED = 11
-        const val THINGS_BOARD_ERROR_CODE_AUTHENTICATION_FAILED = 10
+    object ServerConnectionIds {
+        const val CONNECTION_ID_THINGSBOARD = 1
+        const val CONNECTION_ID_AIR_POWER_SERVER = 2
     }
 }

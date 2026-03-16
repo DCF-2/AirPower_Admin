@@ -5,7 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.lifecycle.ViewModelProvider
+import androidx.activity.viewModels // Importação moderna do ViewModel
+import androidx.compose.material3.Surface
 import com.ifpe.edu.br.R
 import com.ifpe.edu.br.common.ui.theme.AirPowerCostumerTheme
 import com.ifpe.edu.br.view.ui.screens.AdminMainScreen
@@ -15,31 +16,35 @@ import com.ifpe.edu.br.viewmodel.AdminViewModel
 
 class AdminActivity : ComponentActivity() {
 
-    private lateinit var viewModel: AdminViewModel
+    // Instanciação moderna e segura do cérebro da tela
+    private val viewModel: AdminViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Transição de tela
         overridePendingTransition(R.anim.enter_from_right, R.anim.exit_to_left)
         enableEdgeToEdge()
 
-        viewModel = ViewModelProvider(this)[AdminViewModel::class.java]
-
         setContent {
-            // Usando o mesmo tema do cliente
+            // Usando o tema que você definiu
             AirPowerCostumerTheme(
                 lightAppScheme = lightAppThemeSchema,
                 darkAppColorScheme = darkAppThemeSchema
             ) {
-                AdminMainScreen(
-                    viewModel = viewModel,
-                    onLogout = {
-                        // Volta para a tela de Login
-                        val intent = Intent(this, AuthActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        startActivity(intent)
-                        finish()
-                    }
-                )
+                Surface {
+                    AdminMainScreen(
+                        viewModel = viewModel,
+                        onLogout = {
+                            // Volta para a tela de Login e limpa o histórico
+                            val intent = Intent(this, AuthActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            }
+                            startActivity(intent)
+                            finish()
+                        }
+                    )
+                }
             }
         }
     }

@@ -1,10 +1,6 @@
 package com.ifpe.edu.br.view.ui.screens
 
-/*
-* Trabalho de conclusão de curso - IFPE 2025
-* Author: Willian Santos
-* Project: AirPower Costumer
-*/
+
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,30 +24,31 @@ import com.ifpe.edu.br.common.CommonConstants
 import com.ifpe.edu.br.common.components.CustomColumn
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.common.ui.theme.White
-import com.ifpe.edu.br.model.repository.remote.dto.AlarmInfo
 import com.ifpe.edu.br.model.util.AirPowerUtil
 import com.ifpe.edu.br.view.AuthActivity
 import com.ifpe.edu.br.view.ui.components.EmptyStateCard
-import com.ifpe.edu.br.viewmodel.AirPowerViewModel
 import com.ifpe.edu.br.view.ui.components.DashboardCard
+import com.ifpe.edu.br.viewmodel.AdminViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashBoardsScreen(
     navController: NavHostController,
-    mainViewModel: AirPowerViewModel
+    mainViewModel: AdminViewModel // Usando o novo maestro
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val userDashboards by
-    mainViewModel.getDashboardsForCurrentUser().collectAsState(initial = emptyList())
-    val allAlarms = mainViewModel.getAlarmInfoSet().collectAsState()
-    val isRefreshing by mainViewModel.isRefreshing.collectAsState()
+
+    // TODO: No futuro, vamos adicionar uma rota no AdminRepository para buscar a lista de Dashboards disponíveis para o Tenant.
+    // Por enquanto, criamos uma lista vazia simulada para não dar erro de compilação.
+    val userDashboards = emptyList<com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo>()
+
+    val isRefreshing by mainViewModel.isLoading.collectAsState()
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = {
-            mainViewModel.forceRefresh()
+            // TODO: Chamar o refresh dos Dashboards do AdminViewModel
         },
         modifier = Modifier.fillMaxSize()
     ) {
@@ -62,62 +59,42 @@ fun DashBoardsScreen(
                 .padding(horizontal = 10.dp),
             alignmentStrategy = CommonConstants.Ui.ALIGNMENT_TOP,
             layouts = listOf {
+                Spacer(modifier = Modifier.padding(vertical = 16.dp))
+
                 if (userDashboards.isEmpty()) {
                     EmptyStateCard()
                 } else {
                     userDashboards.forEach { dashboard ->
                         DashboardCard(
                             dashboard = dashboard,
-                            mainViewModel = mainViewModel,
-                            allAlarms = allAlarms.value
+                            onClick = {
+                                // TODO: Ação de abrir a WebView com o Dashboard
+                            }
                         )
                         Spacer(modifier = Modifier.padding(vertical = 8.dp))
                     }
                 }
-                Spacer(modifier = Modifier.padding(vertical = 6.dp))
+
+                Spacer(modifier = Modifier.padding(vertical = 24.dp))
+
                 RectButton(
-                    text = "Logout",
+                    text = "Sair da Conta",
                     onClick = {
                         mainViewModel.logout()
                         AirPowerUtil.launchActivity(
                             navController.context,
                             AuthActivity::class.java,
                         )
-                        navController.popBackStack()
                         (context as? ComponentActivity)?.finish()
                     },
                     fontSize = 20.sp,
                     colors = ButtonDefaults.buttonColors(
                         contentColor = White,
                         containerColor = MaterialTheme.colorScheme.secondary,
-                        disabledContentColor = Color.Gray,
-                        disabledContainerColor = Color.Gray
                     )
                 )
-                Spacer(modifier = Modifier.padding(vertical = 6.dp))
+                Spacer(modifier = Modifier.padding(vertical = 16.dp))
             }
         )
-    }
-}
-
-
-/**
- * Filtra uma lista de objetos [AlarmInfo] para retornar apenas aqueles associados a um conjunto específico de IDs de dispositivos.
- *
- * Este método é "null-safe" e ignora com segurança quaisquer alarmes na lista de entrada
- * que tenham um `originator` ou `originator.id` nulos, prevenindo `NullPointerException`.
- * Ele utiliza um `Set` para os IDs de dispositivos fornecidos para garantir uma verificação de contenção eficiente (complexidade O(1) em média).
- *
- * @param alarms A lista completa de [AlarmInfo] a ser filtrada. Pode conter alarmes com dados nulos.
- * @param deviceIds Uma lista de [String] contendo os IDs dos dispositivos a serem usados como critério de filtro.
- * @return Uma nova [List] de [AlarmInfo] contendo apenas os alarmes cujo ID do originador
- *         corresponde a um dos IDs na lista `deviceIds`. Retorna uma lista vazia se não houver correspondências.
- */
-fun filterAlarmsByDeviceIds(alarms: List<AlarmInfo>, deviceIds: List<String>): List<AlarmInfo> {
-    val deviceIdsSet = deviceIds.toSet()
-    return alarms.filter { alarm ->
-        alarm.originator?.id?.toString()?.let { deviceId ->
-            deviceIdsSet.contains(deviceId)
-        } ?: false
     }
 }

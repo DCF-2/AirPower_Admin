@@ -2,16 +2,9 @@ package com.ifpe.edu.br
 
 import android.app.Application
 import android.content.Context
-import com.ifpe.edu.br.model.repository.Repository
-import com.ifpe.edu.br.viewmodel.AirPowerViewModelProvider
+import com.ifpe.edu.br.model.repository.AdminRepository
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.util.AirPowerLog
-
-/*
-* Trabalho de conclusão de curso - IFPE 2025
-* Author: Willian Santos
-* Project: AirPower Costumer
-*/
 
 class AirPowerApplication : Application() {
     private val tag = AirPowerApplication::class.simpleName
@@ -24,10 +17,14 @@ class AirPowerApplication : Application() {
     }
 
     override fun onCreate() {
-        if (AirPowerLog.ISLOGABLE) AirPowerLog.d(tag, "onCreate()")
-        instance = this
-        Repository.build(applicationContext)
-        AirPowerViewModelProvider.getInstance(this)
+        if (AirPowerLog.ISLOGABLE) AirPowerLog.d(tag, "onCreate() - Starting AirPower Admin")
         super.onCreate()
+        instance = this
+
+        // Inicializa o nosso novo Repositório Global com o Contexto
+        AdminRepository.getInstance(applicationContext)
+
+        // Inicializa o Shared Preferences
+        SharedPrefManager.getInstance(applicationContext)
     }
 }

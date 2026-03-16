@@ -1,9 +1,4 @@
 package com.ifpe.edu.br.view
-/*
-* Trabalho de conclusão de curso - IFPE 2025
-* Author: Willian Santos
-* Project: AirPower Costumer
-*/
 
 import android.content.Context
 import android.content.res.Configuration
@@ -12,6 +7,7 @@ import android.util.DisplayMetrics
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels // Importante para injetar o ViewModel
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -23,28 +19,30 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ifpe.edu.br.R
 import com.ifpe.edu.br.common.ui.theme.AirPowerCostumerTheme
-import com.ifpe.edu.br.model.Constants
 import com.ifpe.edu.br.model.util.AirPowerLog
 import com.ifpe.edu.br.view.ui.screens.AuthScreen
 import com.ifpe.edu.br.view.ui.screens.SplashScreen
 import com.ifpe.edu.br.view.ui.theme.darkAppThemeSchema
 import com.ifpe.edu.br.view.ui.theme.lightAppThemeSchema
-import com.ifpe.edu.br.viewmodel.AirPowerViewModel
-import com.ifpe.edu.br.viewmodel.AirPowerViewModelProvider
+import com.ifpe.edu.br.viewmodel.AdminViewModel // O nosso novo cérebro!
 
 class AuthActivity : ComponentActivity() {
     val TAG = "AuthActivity"
+
+    private val viewModel: AdminViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         splashScreen.setKeepOnScreenCondition { false }
         super.onCreate(savedInstanceState)
+
         if (AirPowerLog.ISLOGABLE) AirPowerLog.d(TAG, "onCreate()")
         overridePendingTransition(R.anim.enter_from_right, R.anim.exit_to_left)
         enableEdgeToEdge()
+
         setContent {
             val adjustedContext = LocalContext.current.adjustedFontScale()
             val navController = rememberNavController()
-            val viewModel = AirPowerViewModelProvider.getInstance()
 
             CompositionLocalProvider(LocalContext provides adjustedContext) {
                 AirPowerCostumerTheme(
@@ -74,16 +72,15 @@ class AuthActivity : ComponentActivity() {
 
 @Composable
 private fun InitializeNavigation(
-    mainViewModel: AirPowerViewModel,
+    mainViewModel: AdminViewModel,
     navController: NavHostController,
     componentActivity: ComponentActivity
 ) {
-
     NavHost(
         navController = navController,
-        startDestination = Constants.Navigation.NAVIGATION_INITIAL
+        startDestination = "SPLASH" // Rotas simplificadas
     ) {
-        composable(Constants.Navigation.NAVIGATION_INITIAL) {
+        composable("SPLASH") {
             SplashScreen(
                 navController = navController,
                 viewModel = mainViewModel,
@@ -91,7 +88,8 @@ private fun InitializeNavigation(
             )
         }
 
-        composable(Constants.Navigation.NAVIGATION_AUTH) {
+        composable("AUTH") {
+            // TODO: A AuthScreen ainda precisa ser refatorada para ter as abas de Login/Registro!
             AuthScreen(
                 navController = navController,
                 viewModel = mainViewModel,

@@ -1,15 +1,9 @@
 package com.ifpe.edu.br.model.util;
-// Trabalho de conclusão de curso - IFPE 2025
-// Author: Willian Santos
-// Project: AirPower Costumer
-
-// Copyright (c) 2025 IFPE. All rights reserved.
-
 
 import android.util.Log;
 
 public class AirPowerLog {
-    private static final String TAG = "AirPowerCostumerApp:";
+    private static final String TAG = "AirPowerAdminApp:";
     public static final boolean ISLOGABLE = AirPowerUtil.isDebugVersion();
     public static final boolean ISVERBOSE = ISLOGABLE && AirPowerUtil.isVerbose();
 
