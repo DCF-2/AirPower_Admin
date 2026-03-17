@@ -6,6 +6,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.repository.remote.dto.PageData
 import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.repository.remote.dto.auth.LoginRequest
+import com.ifpe.edu.br.model.repository.remote.dto.auth.RegisterRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.Token
 import retrofit2.Response
 import retrofit2.http.*
@@ -25,6 +26,9 @@ interface AdminAPIService {
     suspend fun login(
         @Body credentials: LoginRequest
     ): Token
+
+    @POST("/api/users/register")
+    suspend fun registerUser(@Body request: RegisterRequest): retrofit2.Response<Unit>
 
     // ==========================================
     // 2. WI-FI (Banco de Dados do BFF)
