@@ -12,6 +12,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.DeviceCredentials
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.repository.remote.dto.auth.LoginRequest
+import com.ifpe.edu.br.model.repository.remote.dto.auth.RegisterRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.Token
 import com.ifpe.edu.br.model.util.ResultWrapper
 
@@ -79,6 +80,23 @@ class AdminRepository private constructor(private val context: Context) {
             prefs.writeString("LOGGED_USER_EMAIL", credentials.email)
 
             ResultWrapper.Success(token)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
+        }
+    }
+
+    // --- REGISTRO DE USUÁRIO  ---
+    suspend fun registerUser(request: RegisterRequest): ResultWrapper<Unit> {
+        return try {
+            val service = adminServerManager.getService(null)
+            val response = service.registerUser(request)
+
+            if (response.isSuccessful) {
+                ResultWrapper.Success(Unit)
+            } else {
+                ResultWrapper.ApiError(response.code(), response.message())
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             ResultWrapper.NetworkError

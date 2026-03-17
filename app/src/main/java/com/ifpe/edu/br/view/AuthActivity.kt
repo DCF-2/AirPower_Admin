@@ -78,7 +78,7 @@ private fun InitializeNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = "SPLASH" // Rotas simplificadas
+        startDestination = "SPLASH"
     ) {
         composable("SPLASH") {
             SplashScreen(
@@ -89,11 +89,18 @@ private fun InitializeNavigation(
         }
 
         composable("AUTH") {
-            // TODO: A AuthScreen ainda precisa ser refatorada para ter as abas de Login/Registro!
             AuthScreen(
                 navController = navController,
                 viewModel = mainViewModel,
                 componentActivity = componentActivity
+            )
+        }
+
+        // --- ROTA DE REGISTRO! ---
+        composable("REGISTER") {
+            com.ifpe.edu.br.view.ui.screens.RegisterScreen(
+                navController = navController,
+                viewModel = mainViewModel
             )
         }
     }

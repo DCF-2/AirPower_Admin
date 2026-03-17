@@ -398,4 +398,36 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    // --- REGISTRO DE NOVO ADMIN ---
+    fun registerNewAdmin(name: String, email: String, pass: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            // O DTO já injeta o "TENANT_ADMIN" por padrão
+            val request = com.ifpe.edu.br.model.repository.remote.dto.auth.RegisterRequest(
+                name = name,
+                email = email,
+                password = pass
+            )
+
+            val result = repository.registerUser(request)
+            _isLoading.value = false
+
+            if (result is ResultWrapper.Success) {
+                // Sucesso! Dispara o callback para mostrar o aviso na tela
+                onResult(true, "Cadastro realizado com sucesso!\nAguarde a aprovação do Super Administrador para fazer login.")
+            } else if (result is ResultWrapper.ApiError) {
+                // Tratamento elegante de erro do card
+                val errorMsg = when (result.code) {
+                    409 -> "Este e-mail já está cadastrado no sistema."
+                    400 -> "Dados inválidos. Verifique as informações."
+                    else -> "Erro no servidor proxy (${result.code})."
+                }
+                onResult(false, errorMsg)
+            } else {
+                onResult(false, "Falha de conexão. Verifique se o servidor Proxy está configurado e online.")
+            }
+        }
+    }
 }

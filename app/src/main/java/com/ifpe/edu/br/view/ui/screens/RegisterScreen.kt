@@ -1,38 +1,19 @@
 package com.ifpe.edu.br.view.ui.screens
 
-import androidx.activity.ComponentActivity
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,34 +30,47 @@ import com.ifpe.edu.br.common.components.CustomProgressDialog
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.common.ui.theme.AirPowerTheme
 import com.ifpe.edu.br.common.ui.theme.White
-import com.ifpe.edu.br.model.repository.AdminRepository
-import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
-import com.ifpe.edu.br.model.repository.remote.dto.auth.LoginRequest
-import com.ifpe.edu.br.model.util.AirPowerUtil
-import com.ifpe.edu.br.model.util.ResultWrapper
-import com.ifpe.edu.br.view.ui.components.ServerConfigBottomSheet
 import com.ifpe.edu.br.viewmodel.AdminViewModel
-import kotlinx.coroutines.launch
 
 @Composable
-fun AuthScreen(
+fun RegisterScreen(
     navController: NavHostController,
-    viewModel: AdminViewModel, // Agora usando o AdminViewModel
-    componentActivity: ComponentActivity
+    viewModel: AdminViewModel
 ) {
     val scrollState = rememberScrollState()
     val theme = MaterialTheme.colorScheme
-    val scope = rememberCoroutineScope()
 
-    // Controles de UI Locais
-    var showServerConfig by remember { mutableStateOf(false) }
+    // Estados do Formulário
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    // Estados de UI
+    var isSelectionHandlerFocused by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        if (SharedPrefManager.getInstance(componentActivity).isFirstRun) {
-            showServerConfig = true
-        }
+    // Estado do Popup de Sucesso
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var successMessage by remember { mutableStateOf("") }
+
+    // --- POPUP DE SUCESSO (Aguardando Aprovação) ---
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Obrigamos a clicar no botão para sair */ },
+            title = { Text("Cadastro Concluído! 🎉") },
+            text = { Text(successMessage) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        navController.popBackStack() // Volta para o Login
+                    }
+                ) {
+                    Text("Voltar ao Login")
+                }
+            }
+        )
     }
 
     Box(
@@ -89,14 +83,20 @@ fun AuthScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            // Botão de Voltar
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = theme.onBackground)
+                }
+            }
+
             val cardColor = theme.primary
-            var isSelectionHandlerFocused by remember { mutableStateOf(false) }
             val appDimens = AirPowerTheme.dimens
 
-            // ESPAÇO PARA A LOGO MODERNIZADA
+            // LOGO
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(appDimens.cardCornerRadius))
@@ -105,14 +105,14 @@ fun AuthScreen(
                 Image(
                     painter = painterResource(id = R.drawable.app_logo),
                     contentDescription = "AirPower Logo",
-                    modifier = Modifier.height(180.dp),
+                    modifier = Modifier.height(120.dp),
                     alignment = Alignment.Center
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // CARTÃO DE LOGIN
+            // CARTÃO DE REGISTRO
             CustomCard(
                 paddingStart = appDimens.paddingMedium,
                 paddingEnd = appDimens.paddingMedium,
@@ -128,8 +128,6 @@ fun AuthScreen(
                     .background(cardColor),
                 layouts = listOf {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        var email by rememberSaveable { mutableStateOf("") }
-                        var password by rememberSaveable { mutableStateOf("") }
 
                         val inputBackgroundColor = lerp(cardColor, theme.onPrimary, 0.05f)
                         val customSelectionColors = remember(isSelectionHandlerFocused) {
@@ -140,11 +138,25 @@ fun AuthScreen(
                         }
 
                         Text(
-                            text = "Acesso Restrito",
+                            text = "Solicitar Acesso",
                             style = AirPowerTheme.typography.displayMedium,
                             color = theme.onPrimary,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
+
+                        CustomInputText(
+                            value = name,
+                            onFocusChanged = { focused -> isSelectionHandlerFocused = focused },
+                            onValueChange = { name = it },
+                            label = "Nome Completo",
+                            labelColor = theme.onPrimary,
+                            placeholder = "Digite seu nome",
+                            placeHolderColor = theme.onPrimary,
+                            inputFieldColors = getInputColors(inputBackgroundColor, customSelectionColors, cardColor),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         CustomInputText(
                             value = email,
@@ -176,87 +188,51 @@ fun AuthScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // BOTÃO DE LOGIN COM CHAMADA DIRETA PARA O REPOSITÓRIO
                         RectButton(
                             colors = ButtonDefaults.buttonColors(
                                 contentColor = theme.onSecondary,
                                 containerColor = theme.secondary,
                             ),
                             fontStyle = AirPowerTheme.typography.button,
-                            text = "Entrar no Sistema",
+                            text = "Cadastrar",
                             onClick = {
                                 isSelectionHandlerFocused = false
+                                if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                                    errorMessage = "Preencha todos os campos."
+                                    return@RectButton
+                                }
+
                                 isLoading = true
                                 errorMessage = ""
 
-                                scope.launch {
-                                    val result = AdminRepository.getInstance(componentActivity)
-                                        .login(LoginRequest(email, password))
-
+                                // Chama a função que criamos no ViewModel!
+                                viewModel.registerNewAdmin(name, email, password) { isSuccess, msg ->
                                     isLoading = false
-                                    if (result is ResultWrapper.Success) {
-                                        // Sucesso! Vai para o AdminActivity
-                                        navController.popBackStack()
-                                        AirPowerUtil.launchActivity(componentActivity, com.ifpe.edu.br.view.AdminActivity::class.java)
-                                        componentActivity.finish()
-                                    } else if (result is ResultWrapper.ApiError) {
-                                        errorMessage = when (result.code) {
-                                            401 -> "Senha Incorreta"
-                                            403 -> "Acesso Negado ou Usuário Pendente"
-                                            404 -> "Usuário não encontrado"
-                                            else -> "Erro do servidor (${result.code})"
-                                        }
+                                    if (isSuccess) {
+                                        successMessage = msg
+                                        showSuccessDialog = true
                                     } else {
-                                        errorMessage = "Sem conexão com o servidor."
+                                        errorMessage = msg
                                     }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // MENSAGEM DE ERRO (Aparece se falhar o login)
                         if (errorMessage.isNotEmpty()) {
                             Text(
                                 text = errorMessage,
                                 color = theme.error,
                                 modifier = Modifier.padding(top = 16.dp),
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                style = AirPowerTheme.typography.bodySmall
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // TEXTO PARA REGISTRO (Link)
-                        Text(
-                            text = "Não tem acesso? Solicite aqui.",
-                            color = theme.onPrimary.copy(alpha = 0.7f),
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .clickable {
-                                    navController.navigate("REGISTER")
-                                },
-                            style = AirPowerTheme.typography.bodySmall
-                        )
                     }
                 }
             )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // BOTÃO DE CONFIG DE SERVIDOR (Embaixo do Cartão)
-            RectButton(
-                colors = ButtonDefaults.buttonColors(
-                    contentColor = theme.onSurface.copy(alpha = 0.6f),
-                    containerColor = Color.Transparent,
-                ),
-                fontStyle = AirPowerTheme.typography.button,
-                text = "⚙️ Configurar Servidor API",
-                onClick = { showServerConfig = true },
-                modifier = Modifier.fillMaxWidth()
-            )
         }
 
-        // SOBREPOSIÇÕES (Loading e BottomSheet)
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -268,18 +244,9 @@ fun AuthScreen(
                     indicatorColor = theme.secondary,
                     textColor = theme.surface,
                     fontStyle = AirPowerTheme.typography.displayMedium,
-                    customBackground = { modifier ->
-                        Box(modifier = modifier.background(Color.Transparent))
-                    }
+                    customBackground = { modifier -> Box(modifier = modifier.background(Color.Transparent)) }
                 )
             }
-        }
-
-        if (showServerConfig) {
-            ServerConfigBottomSheet(
-                onDismiss = { showServerConfig = false },
-                onSave = { showServerConfig = false }
-            )
         }
     }
 }
