@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
@@ -79,7 +80,6 @@ fun MapScreen(viewModel: AdminViewModel) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
                     val userLatLng = LatLng(location.latitude, location.longitude)
-
                     // Move a câmera para a localização real com um zoom aproximado
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(userLatLng, 16f)
                 }
@@ -114,24 +114,21 @@ fun MapScreen(viewModel: AdminViewModel) {
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
                 properties = MapProperties(
-                    isMyLocationEnabled = true // Como já verificamos, podemos deixar true com segurança
+                    isMyLocationEnabled = true
                 ),
                 uiSettings = MapUiSettings(
-                    myLocationButtonEnabled = true, // O botão vai aparecer garantido!
+                    myLocationButtonEnabled = true,
                     zoomControlsEnabled = true,
                     mapToolbarEnabled = false
                 )
             ) {
                 // Desenha os pinos que vieram da telemetria
                 devices.forEach { device ->
-                    val deviceId = device.id.id.toString()
+                    val deviceId = device.id.id
                     val locationInfo = locations[deviceId]
 
                     if (locationInfo != null) {
-                        val lat = locationInfo.latitude
-                        val lng = locationInfo.longitude
-
-                        val position = LatLng(lat, lng)
+                        val position = LatLng(locationInfo.latitude, locationInfo.longitude)
                         Marker(
                             state = MarkerState(position = position),
                             title = device.name,
@@ -148,7 +145,7 @@ fun MapScreen(viewModel: AdminViewModel) {
                     .align(Alignment.TopEnd)
                     .padding(16.dp),
                 shadowElevation = 4.dp,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Text(

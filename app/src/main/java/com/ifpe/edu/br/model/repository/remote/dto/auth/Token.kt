@@ -1,17 +1,12 @@
 package com.ifpe.edu.br.model.repository.remote.dto.auth
 
-
-// Trabalho de conclusão de curso - IFPE 2025
-// Author: Willian Santos
-// Project: AirPower Costumer
-
-// Copyright (c) 2025 IFPE. All rights reserved.
-
+import com.google.gson.annotations.SerializedName
 
 data class Token(
-    val token: String,
-    val refreshToken: String,
-    val scope: String
+    @SerializedName("token")val token: String,
+    @SerializedName("refreshtoken")val refreshToken: String,
+    @SerializedName("scope")val scope: String,
+    @SerializedName("tbUrl")val tbUrl: String? = null
 ) {
     override fun toString(): String {
         return "Token(token='$token', " +
