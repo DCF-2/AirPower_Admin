@@ -66,6 +66,11 @@ interface AdminAPIService {
     suspend fun saveDeviceLocation(
         @Header("X-User-Email") userEmail: String,
         @Path("id") deviceId: String,
-        @Body location: Map<String, Double>
+        @Body location: LocationPayload
     ): Response<Void>
 }
+data class LocationPayload(
+    val latitude: Double,
+    val longitude: Double,
+    val description: String
+)

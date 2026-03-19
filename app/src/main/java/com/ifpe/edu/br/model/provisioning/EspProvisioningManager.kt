@@ -17,7 +17,7 @@ class EspProvisioningManager {
     private val TAG = "EspProvisioning"
     private val PORT = 9090
     private var serverSocket: ServerSocket? = null
-    private var isRunning = false
+    @Volatile private var isRunning = false
     private val gson = Gson()
 
     interface ProvisioningCallback {
@@ -28,7 +28,7 @@ class EspProvisioningManager {
 
     suspend fun startServer(
         config: EspConfiguration,
-        expectedEspId: String, // <--- NOVO: O ID que esperamos receber da ESP
+        expectedEspId: String,
         callback: ProvisioningCallback
     ) = withContext(Dispatchers.IO) {
         try {
@@ -38,96 +38,117 @@ class EspProvisioningManager {
             serverSocket = ServerSocket()
             serverSocket?.reuseAddress = true
             serverSocket?.bind(InetSocketAddress("0.0.0.0", PORT))
-            serverSocket?.soTimeout = 120000 // 2 minutos
+            serverSocket?.soTimeout = 120000 // 2 minutos para achar a placa certa
             isRunning = true
 
             Log.d(TAG, "Servidor ouvindo em 0.0.0.0:$PORT")
             withContext(Dispatchers.Main) {
-                callback.onStatusChanged("Aguardando conexão da ESP32...")
+                callback.onStatusChanged("Aguardando conexão da ESP32 (Alvo: $expectedEspId)...")
             }
 
-            // Bloqueia até a ESP conectar
-            val clientSocket = serverSocket!!.accept()
+            // O LOOP DA RESILIÊNCIA: Continua aceitando conexões até achar a placa certa ou dar timeout
+            while (isRunning) {
+                var clientSocket: Socket? = null
+                try {
+                    // Bloqueia até ALGUÉM conectar
+                    clientSocket = serverSocket!!.accept()
+                    Log.d(TAG, "Cliente conectado: ${clientSocket.inetAddress.hostAddress}")
 
-            Log.d(TAG, "Cliente conectado: ${clientSocket.inetAddress.hostAddress}")
+                    // Tenta o Handshake com este cliente
+                    val isCorrectEsp = handleClientHandshake(clientSocket, config, expectedEspId, callback)
 
-            // Inicia o Handshake
-            handleClientHandshake(clientSocket, config, expectedEspId, callback)
+                    if (isCorrectEsp) {
+                        // Se for a placa certa, o handshake foi concluído com sucesso.
+                        // Podemos sair do loop e desligar o servidor.
+                        isRunning = false
+                        break
+                    } else {
+                        // Se for um vizinho (intruso), avisamos na UI e o loop volta para o accept()
+                        withContext(Dispatchers.Main) {
+                            callback.onStatusChanged("Intruso rejeitado. Aguardando a ESP correta...")
+                        }
+                    }
+                } catch (e: SocketTimeoutException) {
+                    throw e // Repassa o timeout para o bloco catch de fora
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Se der um erro de I/O com a placa, ignoramos e continuamos esperando
+                } finally {
+                    // Garante que a conexão com O CLIENTE ATUAL é fechada antes de aceitar o próximo
+                    try { clientSocket?.close() } catch (e: Exception) {}
+                }
+            }
 
         } catch (e: SocketTimeoutException) {
             withContext(Dispatchers.Main) {
-                callback.onError("Tempo esgotado. A ESP32 não conectou.")
+                callback.onError("Tempo esgotado. A ESP32 correta não conectou.")
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
-                callback.onError("Erro no Servidor: ${e.message}")
+                callback.onError("Erro fatal no Servidor TCP: ${e.message}")
             }
         } finally {
             stopServer()
         }
     }
 
+    /**
+     * Retorna TRUE se a configuração foi entregue com sucesso à placa certa.
+     * Retorna FALSE se a placa for incorreta (intruso).
+     * Lança Exceptions para erros de rede graves.
+     */
     private suspend fun handleClientHandshake(
         socket: Socket,
-        config: EspConfiguration, 
+        config: EspConfiguration,
         expectedEspId: String,
         callback: ProvisioningCallback
-    ) {
-        try {
-            val input = BufferedReader(InputStreamReader(socket.getInputStream()))
-            val output = PrintWriter(socket.getOutputStream(), true)
+    ): Boolean {
+        // Define um timeout curto (5 seg) apenas para a leitura dos dados do cliente.
+        // Assim, se um intruso conectar e ficar mudo, ele não trava o servidor por 2 minutos!
+        socket.soTimeout = 5000
 
-            // --- PASSO 1: LER O ID DA ESP32 ---
-            withContext(Dispatchers.Main) {
-                callback.onStatusChanged("Conectado! Aguardando ID da ESP...")
-            }
+        val input = BufferedReader(InputStreamReader(socket.getInputStream()))
+        val output = PrintWriter(socket.getOutputStream(), true)
 
-            val receivedData = input.readLine()
+        // --- PASSO 1: LER O ID DA ESP32 ---
+        val receivedData = input.readLine() ?: throw Exception("Cliente desconectou sem enviar dados.")
 
-            Log.d(TAG, "Recebido da ESP: $receivedData")
+        Log.d(TAG, "Recebido da placa: $receivedData")
 
-            if (receivedData == null) {
-                throw Exception("ESP desconectou sem enviar ID.")
-            }
+        // --- PASSO 2: VALIDAR O ID ---
+        if (!receivedData.contains(expectedEspId, ignoreCase = true)) {
+            Log.d(TAG, "Rejeitando placa intrusa. Esperado: $expectedEspId, Recebido: $receivedData")
 
-            // --- PASSO 2: VALIDAR O ID ---
-            if (!receivedData.contains(expectedEspId, ignoreCase = true)) {
-                // Avisar a ESP que ela foi rejeitada antes de fechar a porta!
-                val rejectJson = "{\"status\":\"error\", \"message\":\"ID_REJECTED\"}"
-                output.println(rejectJson)
-                output.flush()
-                Thread.sleep(500) // Dá tempo do pacote chegar na ESP
-
-                throw Exception("ID Incorreto! Esperado: $expectedEspId, Recebido: $receivedData")
-            }
-
-            // --- PASSO 3: ENVIAR O JSON DE CONFIGURAÇÃO ---
-            withContext(Dispatchers.Main) {
-                callback.onStatusChanged("ID Confirmado! Enviando Configuração...")
-            }
-
-            val jsonPayload = gson.toJson(config)
-            Log.d(TAG, "Enviando: $jsonPayload")
-
-            output.println(jsonPayload)
+            // Avisar a ESP que ela foi rejeitada
+            val rejectJson = "{\"status\":\"error\", \"message\":\"ID_REJECTED\"}"
+            output.println(rejectJson)
             output.flush()
+            Thread.sleep(500)
 
-            // Dá tempo da ESP processar antes de fechar
-            Thread.sleep(2000)
-
-            withContext(Dispatchers.Main) {
-                callback.onSuccess()
-            }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            withContext(Dispatchers.Main) {
-                callback.onError("Falha no Handshake: ${e.message}")
-            }
-        } finally {
-            socket.close()
+            return false // Indica ao while() que era a placa errada e ele deve continuar esperando
         }
+
+        // --- PASSO 3: É A PLACA CERTA! ENVIAR A CONFIGURAÇÃO ---
+        withContext(Dispatchers.Main) {
+            callback.onStatusChanged("ID Confirmado! Enviando Configuração...")
+        }
+
+        val jsonPayload = gson.toJson(config)
+        Log.d(TAG, "Enviando: $jsonPayload")
+
+        output.println(jsonPayload)
+        output.flush()
+
+        // Dá tempo da ESP processar o JSON antes de cortarmos a conexão
+        Thread.sleep(2000)
+
+        withContext(Dispatchers.Main) {
+            callback.onSuccess()
+        }
+
+        return true // Indica ao while() que terminamos com sucesso
     }
+
     fun stopServer() {
         isRunning = false
         try {

@@ -15,10 +15,8 @@ import com.ifpe.edu.br.model.repository.remote.dto.auth.LoginRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.RegisterRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.Token
 import com.ifpe.edu.br.model.util.ResultWrapper
+import com.ifpe.edu.br.model.repository.remote.api.LocationPayload
 
-/*
-* Refactored for: AirPower Admin (BFF Integration)
-*/
 class AdminRepository private constructor(private val context: Context) {
 
     private val adminServerManager = AdminServerManager()
@@ -51,39 +49,70 @@ class AdminRepository private constructor(private val context: Context) {
 
     suspend fun getTokenByConnectionId(id: Int): AirPowerToken? = tokenDao.getTokenByClient(id)
 
-
     // ==========================================
-    // 2. IAM (Login e Registro)
+    // 2. IAM E SESSÃO (Login, Registro e Validação)
     // ==========================================
 
-    suspend fun registerUser(payload: Map<String, String>): ResultWrapper<String> {
+    suspend fun login(credentials: LoginRequest): ResultWrapper<Token> {
         return try {
-            val service = adminServerManager.getService(null) // Registro não usa token
-            val response = service.registerUser(payload)
-            if (response.isSuccessful) {
-                ResultWrapper.Success(response.body() ?: "Sucesso")
+            val service = adminServerManager.getService(null)
+            val tokenResponse = service.login(credentials)
+
+            // Salva o email na sessão
+            prefs.writeString("LOGGED_USER_EMAIL", credentials.email)
+
+            // ---> SALVA O MOMENTO EXATO DO LOGIN (Timestamp em Milissegundos) <---
+            prefs.writeString("LOGIN_TIMESTAMP", System.currentTimeMillis().toString())
+
+            // ---> SALVA A URL DO THINGSBOARD PARA USAR NA ESP32 <---
+            tokenResponse.tbUrl?.let { prefs.writeString("LOGGED_USER_TB_URL", it)}
+
+            // Salva o Token no Banco de Dados
+            val connectionId = Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD
+            val existingToken = getTokenByConnectionId(connectionId)
+
+            if (existingToken != null) {
+                // No Kotlin, isso chama automaticamente o setJwt() e setRefreshToken() do Java!
+                existingToken.jwt = tokenResponse.token
+
+                // Se a sua data class Token tiver o campo refreshToken, use:
+                // existingToken.refreshToken = tokenResponse.refreshToken
+
+                update(existingToken)
             } else {
-                ResultWrapper.ApiError(response.code())
+
+                val newToken = com.ifpe.edu.br.model.repository.persistence.model.AirPowerToken(
+                    connectionId,          // client
+                    tokenResponse.token,    // jwt
+                    "",            // refreshToken (ou tokenResponse.refreshToken)
+                    ""                  // scope
+                )
+                save(newToken)
             }
+
+            ResultWrapper.Success(tokenResponse)
         } catch (e: Exception) {
             e.printStackTrace()
             ResultWrapper.NetworkError
         }
     }
 
-    suspend fun login(credentials: LoginRequest): ResultWrapper<Token> {
-        return try {
-            val service = adminServerManager.getService(null)
-            val token = service.login(credentials)
+    //  VERIFICA SE A SESSÃO DE 3 HORAS AINDA É VÁLIDA <---
+    suspend fun isSessionValid(): Boolean {
+        // Pega a hora que o usuário logou
+        val loginTimeStr = prefs.readString("LOGIN_TIMESTAMP") ?: "0"
+        val loginTime = loginTimeStr.toLongOrNull() ?: 0L
 
-            // Salva o email do usuário na sessão para podermos enviar no Header depois!
-            prefs.writeString("LOGGED_USER_EMAIL", credentials.email)
+        // Define o limite de 3 horas (em milissegundos)
+        val threeHoursInMillis = 3 * 60 * 60 * 1000L
 
-            ResultWrapper.Success(token)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ResultWrapper.NetworkError
-        }
+        // A sessão é válida se o tempo atual MENOS o tempo do login for menor que 3 horas
+        val isTimeValid = (System.currentTimeMillis() - loginTime) < threeHoursInMillis
+
+        // E, claro, verifica se o Token não foi apagado do banco de dados
+        val tokenExists = getToken() != null
+
+        return isTimeValid && tokenExists
     }
 
     // --- REGISTRO DE USUÁRIO  ---
@@ -148,14 +177,16 @@ class AdminRepository private constructor(private val context: Context) {
         }
     }
 
-    suspend fun saveDeviceLocation(deviceId: String, lat: Double, lng: Double): ResultWrapper<Boolean> {
+    suspend fun saveDeviceLocation(deviceId: String, lat: Double, lng: Double, description: String): ResultWrapper<Boolean> {
         return try {
             val token = getToken() ?: return ResultWrapper.ApiError(Constants.ResponseErrorCode.AP_JWT_EXPIRED)
             val email = prefs.readString("LOGGED_USER_EMAIL") ?: ""
 
             val service = adminServerManager.getService(token)
-            val locationMap = mapOf("latitude" to lat, "longitude" to lng)
-            val response = service.saveDeviceLocation(email, deviceId, locationMap)
+            
+            val payload = LocationPayload(lat, lng, description)
+
+            val response = service.saveDeviceLocation(email, deviceId, payload)
 
             if (response.isSuccessful) {
                 ResultWrapper.Success(true)
