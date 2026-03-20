@@ -217,4 +217,26 @@ class AdminRepository private constructor(private val context: Context) {
     private suspend fun getToken(): String? {
         return JWTManager.getTokenForConnectionId(Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD)?.token
     }
+
+    // ==========================================
+    // 4. MAPA E TELEMETRIA (Novo!)
+    // ==========================================
+
+    suspend fun getLatestTelemetry(deviceId: String, keys: List<String>): ResultWrapper<Map<String, List<Map<String, Any>>>> {
+        return try {
+            val token = getToken() ?: return ResultWrapper.ApiError(Constants.ResponseErrorCode.AP_JWT_EXPIRED)
+            val email = prefs.readString("LOGGED_USER_EMAIL") ?: ""
+            val service = adminServerManager.getService(token)
+
+            // Converte a lista ["latitude", "longitude"] em "latitude,longitude"
+            val keysString = keys.joinToString(",")
+
+            val response = service.getLatestTelemetry(email, deviceId, keysString)
+            ResultWrapper.Success(response)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
+        }
+    }
 }

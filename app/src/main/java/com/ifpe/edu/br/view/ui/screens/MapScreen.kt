@@ -91,15 +91,10 @@ fun MapScreen(viewModel: AdminViewModel) {
     val deviceIconDescriptor = remember { mutableStateOf<BitmapDescriptor?>(null) }
     LaunchedEffect(Unit) {
         try {
-            val original = BitmapFactory.decodeResource(context.resources, R.drawable.ic_launcher_foreground)
-            if (original != null) {
-                val scaled = Bitmap.createScaledBitmap(original, 120, 120, false)
-                deviceIconDescriptor.value = BitmapDescriptorFactory.fromBitmap(scaled)
-            } else {
-                deviceIconDescriptor.value = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
-            }
+            // Tenta usar um ícone genérico do seu projeto (ex: generic_device_icon ou wifi_icon)
+            deviceIconDescriptor.value = bitmapDescriptorFromVector(context, R.drawable.ic_air_conditioner)
         } catch (e: Exception) {
-            deviceIconDescriptor.value = null
+            deviceIconDescriptor.value = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
         }
     }
 
@@ -192,4 +187,17 @@ fun MapScreen(viewModel: AdminViewModel) {
             }
         }
     }
+}
+
+private fun bitmapDescriptorFromVector(context: android.content.Context, vectorResId: Int): BitmapDescriptor {
+    val vectorDrawable = ContextCompat.getDrawable(context, vectorResId)
+    vectorDrawable!!.setBounds(0, 0, vectorDrawable.intrinsicWidth, vectorDrawable.intrinsicHeight)
+    val bitmap = Bitmap.createBitmap(
+        vectorDrawable.intrinsicWidth,
+        vectorDrawable.intrinsicHeight,
+        Bitmap.Config.ARGB_8888
+    )
+    val canvas = android.graphics.Canvas(bitmap)
+    vectorDrawable.draw(canvas)
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
 }

@@ -504,9 +504,53 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             val result = repository.getTenantDevices()
             if (result is ResultWrapper.Success && result.value != null) {
-                _devicesList.value = result.value.map { it.copy() }
+                val devices = result.value.map { it.copy() }
+                _devicesList.value = devices
+                fetchDeviceLocations(devices)
             }
             _isLoading.value = false
+        }
+    }
+
+    // Vai buscar as coordenadas à Telemetria
+    private fun fetchDeviceLocations(devices: List<ThingsBoardDevice>) {
+        viewModelScope.launch {
+            val locationsMap = mutableMapOf<String, LatLng>()
+
+            for (device in devices) {
+                val deviceId = device.id.id
+
+                // NOTA: Certifique-se de que o seu AdminRepository tem esta função para ler a telemetria!
+                // O nome da função pode variar consoante a forma como a criou no repositório.
+                val telemetryResult = repository.getLatestTelemetry(deviceId, listOf("latitude", "longitude"))
+
+                if (telemetryResult is ResultWrapper.Success) {
+                    try {
+                        // 1. Acedemos à lista de cada chave ("latitude" e "longitude")
+                        val latList = telemetryResult.value["latitude"]
+                        val lngList = telemetryResult.value["longitude"]
+
+                        // 2. Pegamos o primeiro item da lista e usamos ["value"] para ler o conteúdo
+                        // Depois transformamos em String para podermos converter em número.
+                        val latStr = latList?.firstOrNull()?.get("value")?.toString()
+                        val lngStr = lngList?.firstOrNull()?.get("value")?.toString()
+
+                        // 3. Convertemos para Double de forma 100% segura
+                        val lat = latStr?.toDoubleOrNull()
+                        val lng = lngStr?.toDoubleOrNull()
+
+                        // 4. Se ambos forem válidos (não nulos), adicionamos ao mapa!
+                        if (lat != null && lng != null) {
+                            locationsMap[deviceId] = LatLng(lat, lng)
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+
+            // Atualiza o estado da UI do Mapa de uma só vez!
+            _deviceLocations.value = locationsMap
         }
     }
 
