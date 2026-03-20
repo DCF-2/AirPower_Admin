@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
 import com.ifpe.edu.br.common.components.RectButton
 import com.ifpe.edu.br.viewmodel.AdminViewModel
 
@@ -400,9 +401,9 @@ fun Step5ValidationAndTerminal(viewModel: AdminViewModel) {
             ) { Text("Avançar para Localização") }
         }
     }
-} // <-- FECHA O PASSO 5 AQUI!
+}
 
-// ---> PASSO 6 COMEÇA AQUI, COMPLETAMENTE SEPARADO! <---
+// ---> PASSO 6: Geolocalização + TB <---
 @Composable
 fun Step6FinalTelemetry(viewModel: AdminViewModel) {
     val theme = MaterialTheme.colorScheme
@@ -410,41 +411,92 @@ fun Step6FinalTelemetry(viewModel: AdminViewModel) {
     var descriptionInput by remember { mutableStateOf(viewModel.locationDescription) }
     val isSaved = status == "TELEMETRIA_SALVA"
 
+    // --- O CÉREBRO DO GPS ---
+    val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+    // Estados locais para a interface reagir imediatamente
+    var currentLat by remember { mutableStateOf<Double?>(null) }
+    var currentLng by remember { mutableStateOf<Double?>(null) }
+
+    // O lançador que pede a permissão na tela
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)) {
+            // Permissão concedida! Pega o GPS!
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    location?.let {
+                        currentLat = it.latitude
+                        currentLng = it.longitude
+                        viewModel.locationLat = it.latitude
+                        viewModel.locationLon = it.longitude
+                    }
+                }
+            } catch (e: SecurityException) { e.printStackTrace() }
+        }
+    }
+
+    // Assim que a tela abrir, tenta pegar o GPS!
+    LaunchedEffect(Unit) {
+        val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    location?.let {
+                        currentLat = it.latitude
+                        currentLng = it.longitude
+                        viewModel.locationLat = it.latitude
+                        viewModel.locationLon = it.longitude
+                    }
+                }
+            } catch (e: SecurityException) { }
+        } else {
+            // Pede a permissão automaticamente!
+            locationPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         Text("Geolocalização Final", style = MaterialTheme.typography.headlineSmall)
         Text("Vincule as coordenadas ao ThingsBoard.", style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
 
         if (!isSaved) {
-            // AVISO IMPORTANTE SOBRE A INTERNET
             Card(
                 colors = CardDefaults.cardColors(containerColor = theme.errorContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Text("⚠️ ATENÇÃO", style = MaterialTheme.typography.titleMedium, color = theme.onErrorContainer)
-                    Spacer(Modifier.height(4.dp))
-                    Text("O seu celular ainda pode estar conectado ao Hotspot da placa.", color = theme.onErrorContainer)
-                    Text("Desligue o Hotspot e ative o Wifi novamente antes de enviar!", fontWeight = FontWeight.Bold, color = theme.onErrorContainer)
+                    Text("Desligue o Hotspot da placa e ative o Wifi/4G com internet antes de enviar!", fontWeight = FontWeight.Bold, color = theme.onErrorContainer)
                 }
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // DADOS CAPTURADOS
+            // DADOS CAPTURADOS (Atualiza em tempo real)
             Card(
                 colors = CardDefaults.cardColors(containerColor = theme.surfaceVariant),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("📍 Latitude: ${viewModel.locationLat ?: "Não capturada"}", style = MaterialTheme.typography.bodyLarge)
-                    Text("📍 Longitude: ${viewModel.locationLon ?: "Não capturada"}", style = MaterialTheme.typography.bodyLarge)
+                    if (currentLat != null) {
+                        Text("📍 Latitude: $currentLat", style = MaterialTheme.typography.bodyLarge)
+                        Text("📍 Longitude: $currentLng", style = MaterialTheme.typography.bodyLarge)
+                    } else {
+                        Text("⏳ A procurar satélites GPS...", style = MaterialTheme.typography.bodyLarge)
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    }
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // INPUT DE DESCRIÇÃO
             OutlinedTextField(
                 value = descriptionInput,
                 onValueChange = { descriptionInput = it },
@@ -455,16 +507,14 @@ fun Step6FinalTelemetry(viewModel: AdminViewModel) {
 
             Spacer(Modifier.weight(1f))
 
-            if (status.contains("Erro")) {
-                Text(status, color = theme.error, modifier = Modifier.padding(bottom = 8.dp))
-            }
-
             Button(
                 onClick = {
                     viewModel.locationDescription = descriptionInput
                     viewModel.saveLocationToThingsBoard()
                 },
                 modifier = Modifier.fillMaxWidth(),
+                // Só deixa clicar se já tiver pegado o GPS
+                enabled = currentLat != null,
                 colors = ButtonDefaults.buttonColors(containerColor = theme.primary)
             ) { Text("Salvar Telemetria no Servidor") }
 

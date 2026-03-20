@@ -68,6 +68,14 @@ interface AdminAPIService {
         @Path("id") deviceId: String,
         @Body location: LocationPayload
     ): Response<Void>
+
+    // Adicione esta função dentro da interface AdminAPIService
+    @GET("/api/proxy/device/{id}/telemetry/latest")
+    suspend fun getLatestTelemetry(
+        @Header("X-User-Email") userEmail: String,
+        @Path("id") deviceId: String,
+        @Query("keys") keys: String // Ex: "latitude,longitude"
+    ): Map<String, List<Map<String, Any>>>
 }
 data class LocationPayload(
     val latitude: Double,
