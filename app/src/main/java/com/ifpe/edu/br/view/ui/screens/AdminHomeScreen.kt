@@ -19,6 +19,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Build
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import com.ifpe.edu.br.view.ui.components.DashboardCard
 import java.util.Locale
 
 @Composable
@@ -34,7 +36,8 @@ fun AdminHomeScreen(
     onNavigateToSetup: () -> Unit,
     onNavigateToDevices: () -> Unit,
     onNavigateToMap: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToDashboards: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -59,7 +62,8 @@ fun AdminHomeScreen(
         // 1. Variáveis de estado e serviços (Coloque isto antes do seu Card)
         val context = LocalContext.current
         var currentLocationName by remember { mutableStateOf("Buscando...") }
-        val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+        val fusedLocationClient =
+            remember { LocationServices.getFusedLocationProviderClient(context) }
 
         val hasLocationPermission = ContextCompat.checkSelfPermission(
             context,
@@ -76,16 +80,25 @@ fun AdminHomeScreen(
 
                             // O Android 13 (Tiramisu) mudou a forma como o Geocoder funciona, precisamos tratar as duas formas:
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                                geocoder.getFromLocation(
+                                    location.latitude,
+                                    location.longitude,
+                                    1
+                                ) { addresses ->
                                     if (addresses.isNotEmpty()) {
                                         val address = addresses[0]
-                                        val city = address.subAdminArea ?: address.locality ?: "Local"
+                                        val city =
+                                            address.subAdminArea ?: address.locality ?: "Local"
                                         currentLocationName = city
                                     }
                                 }
                             } else {
                                 @Suppress("DEPRECATION")
-                                val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                                val addresses = geocoder.getFromLocation(
+                                    location.latitude,
+                                    location.longitude,
+                                    1
+                                )
                                 if (!addresses.isNullOrEmpty()) {
                                     val address = addresses[0]
                                     val city = address.subAdminArea ?: address.locality ?: "Local"
@@ -138,39 +151,43 @@ fun AdminHomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Grid de Cartões (Simulado com Linhas)
+        // 1ª Linha: Novo Sensor e Dispositivos
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             DashboardCard(
-                title = "Novo Sensor",
-                subtitle = "Configurar e instalar",
-                icon = Icons.Default.Add,
-                modifier = Modifier.weight(1f),
+                title = "Novo Sensor", subtitle = "Configurar e instalar",
+                icon = Icons.Default.Add, modifier = Modifier.weight(1f),
                 onClick = onNavigateToSetup
             )
             DashboardCard(
-                title = "Dispositivos",
-                subtitle = "Ver lista completa",
-                icon = Icons.Default.Devices,
-                modifier = Modifier.weight(1f),
+                title = "Dispositivos", subtitle = "Ver lista completa",
+                icon = Icons.Default.Devices, modifier = Modifier.weight(1f),
                 onClick = onNavigateToDevices
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // 2ª Linha: Mapas e Dashboards (Visualização)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             DashboardCard(
-                title = "Mapa",
-                subtitle = "Localização",
-                icon = Icons.Default.Map,
-                modifier = Modifier.weight(1f),
+                title = "Mapa", subtitle = "Localização GPS",
+                icon = Icons.Default.Map, modifier = Modifier.weight(1f),
                 onClick = onNavigateToMap
             )
             DashboardCard(
-                title = "Ajustes",
-                subtitle = "Configurações",
-                icon = Icons.Default.Settings,
-                modifier = Modifier.weight(1f),
+                title = "Dashboards", subtitle = "Painel de Gráficos",
+                icon = Icons.Default.Dashboard, modifier = Modifier.weight(1f),
+                onClick = onNavigateToDashboards
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 3ª Linha: Ajustes (Ocupando a largura inteira ou junta com outro se quiser)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            DashboardCard(
+                title = "Ajustes", subtitle = "Configurações do App",
+                icon = Icons.Default.Settings, modifier = Modifier.weight(1f),
                 onClick = onNavigateToSettings
             )
         }

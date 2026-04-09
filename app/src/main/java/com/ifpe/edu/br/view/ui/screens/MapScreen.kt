@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -21,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -89,10 +92,18 @@ fun MapScreen(viewModel: AdminViewModel) {
 
     // Ícone personalizado dos sensores
     val deviceIconDescriptor = remember { mutableStateOf<BitmapDescriptor?>(null) }
+
+    // Captura a cor primária do tema para pintar o ícone
+    val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
+
     LaunchedEffect(Unit) {
         try {
-            // Tenta usar um ícone genérico do seu projeto (ex: generic_device_icon ou wifi_icon)
-            deviceIconDescriptor.value = bitmapDescriptorFromVector(context, R.drawable.ic_air_conditioner)
+            // Usa o novo gerador com tamanho fixo e cor do tema!
+            deviceIconDescriptor.value = bitmapDescriptorFromVector(
+                context = context,
+                vectorResId = R.drawable.ic_air_conditioner,
+                colorInt = primaryColor
+            )
         } catch (e: Exception) {
             deviceIconDescriptor.value = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
         }
@@ -189,15 +200,26 @@ fun MapScreen(viewModel: AdminViewModel) {
     }
 }
 
-private fun bitmapDescriptorFromVector(context: android.content.Context, vectorResId: Int): BitmapDescriptor {
+private fun bitmapDescriptorFromVector(context: android.content.Context, vectorResId: Int, colorInt: Int? = null): BitmapDescriptor {
     val vectorDrawable = ContextCompat.getDrawable(context, vectorResId)
-    vectorDrawable!!.setBounds(0, 0, vectorDrawable.intrinsicWidth, vectorDrawable.intrinsicHeight)
-    val bitmap = Bitmap.createBitmap(
-        vectorDrawable.intrinsicWidth,
-        vectorDrawable.intrinsicHeight,
-        Bitmap.Config.ARGB_8888
-    )
+        ?: return BitmapDescriptorFactory.defaultMarker()
+
+    // 1. TAMANHO FIXO PARA O MAPA (Aproximadamente 40dp convertido para Pixels)
+    // Isso impede que o ícone fique gigante em telas de alta resolução!
+    val density = context.resources.displayMetrics.density
+    val width = (40 * density).toInt()
+    val height = (40 * density).toInt()
+
+    vectorDrawable.setBounds(0, 0, width, height)
+
+    // 2. Aplica uma cor (opcional) para o ícone não ficar cinzento
+    if (colorInt != null) {
+        vectorDrawable.colorFilter = PorterDuffColorFilter(colorInt, PorterDuff.Mode.SRC_IN)
+    }
+
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = android.graphics.Canvas(bitmap)
     vectorDrawable.draw(canvas)
+
     return BitmapDescriptorFactory.fromBitmap(bitmap)
 }

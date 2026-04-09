@@ -103,7 +103,7 @@ fun AuthScreen(
                     .wrapContentSize()
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.app_logo),
+                    painter = painterResource(id = R.drawable.logo_airpower_sem_fundo),
                     contentDescription = "AirPower Logo",
                     modifier = Modifier.height(180.dp),
                     alignment = Alignment.Center

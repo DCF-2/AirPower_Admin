@@ -16,6 +16,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.auth.RegisterRequest
 import com.ifpe.edu.br.model.repository.remote.dto.auth.Token
 import com.ifpe.edu.br.model.util.ResultWrapper
 import com.ifpe.edu.br.model.repository.remote.api.LocationPayload
+import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
 
 class AdminRepository private constructor(private val context: Context) {
 
@@ -228,12 +229,55 @@ class AdminRepository private constructor(private val context: Context) {
             val email = prefs.readString("LOGGED_USER_EMAIL") ?: ""
             val service = adminServerManager.getService(token)
 
-            // Converte a lista ["latitude", "longitude"] em "latitude,longitude"
-            val keysString = keys.joinToString(",")
+            // Se a lista vier vazia, não mandamos o parâmetro de chaves (ou mandamos vazio, dependendo de como o SpringBoot espera)
+            val keysString = if (keys.isEmpty()) "" else keys.joinToString(",")
 
             val response = service.getLatestTelemetry(email, deviceId, keysString)
             ResultWrapper.Success(response)
 
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
+        }
+    }
+
+    // ==========================================
+    // 5. CONTROLE REMOTO (RPC)
+    // ==========================================
+    suspend fun sendRpcCommand(deviceId: String, method: String, params: Any): ResultWrapper<Boolean> {
+        return try {
+            val token = getToken() ?: return ResultWrapper.ApiError(Constants.ResponseErrorCode.AP_JWT_EXPIRED)
+            val email = prefs.readString("LOGGED_USER_EMAIL") ?: ""
+            val service = adminServerManager.getService(token)
+
+            // Monta o Payload no padrão do ThingsBoard {"method": "setPower", "params": true}
+            val payload = mapOf(
+                "method" to method,
+                "params" to params
+            )
+
+            val response = service.sendRpcCommand(email, deviceId, payload)
+
+            if (response.isSuccessful) {
+                ResultWrapper.Success(true)
+            } else {
+                ResultWrapper.GenericError(response.code(), "Falha ao enviar comando RPC")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultWrapper.NetworkError
+        }
+    }
+
+    suspend fun getTenantDashboards(): ResultWrapper<List<DashboardInfo>> {
+        return try {
+            val token = getToken() ?: return ResultWrapper.ApiError(Constants.ResponseErrorCode.AP_JWT_EXPIRED)
+            val email = prefs.readString("LOGGED_USER_EMAIL") ?: ""
+
+            val service = adminServerManager.getService(token)
+            val pageData = service.getTenantDashboards(email)
+
+            ResultWrapper.Success(pageData.data)
         } catch (e: Exception) {
             e.printStackTrace()
             ResultWrapper.NetworkError

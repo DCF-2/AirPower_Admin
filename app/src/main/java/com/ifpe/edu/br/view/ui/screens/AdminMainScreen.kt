@@ -29,6 +29,7 @@ fun AdminMainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf("Home") }
+    val selectedDevice by viewModel.selectedDevice.collectAsState()
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -88,6 +89,12 @@ fun AdminMainScreen(
                     onClick = { currentScreen = "Devices"; scope.launch { drawerState.close() } }
                 )
                 NavigationItem(
+                    label = "Dashboards",
+                    icon = Icons.Default.Dashboard,
+                    selected = currentScreen == "Dashboards",
+                    onClick = { currentScreen = "Dashboards"; scope.launch { drawerState.close() } }
+                )
+                NavigationItem(
                     label = "Mapa",
                     icon = Icons.Default.Map,
                     selected = currentScreen == "Map",
@@ -118,10 +125,12 @@ fun AdminMainScreen(
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            text = when(currentScreen) {
+                            text = when (currentScreen) {
                                 "Home" -> "AirPower Admin"
                                 "Setup" -> "Nova Instalação"
                                 "Devices" -> "Meus Dispositivos"
+                                "Dashboards" -> "Dashboards Dispositivos"
+                                "Map" -> "Mapa de Instalação"
                                 else -> ""
                             },
                             style = MaterialTheme.typography.titleMedium
@@ -133,28 +142,79 @@ fun AdminMainScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.fetchDevices() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Atualizar")
+                        // Só mostra o botão se estiver nas telas que precisam de atualização
+                        if (currentScreen == "Devices" || currentScreen == "Dashboards") {
+                            IconButton(onClick = {
+                                when (currentScreen) {
+                                    "Devices" -> viewModel.fetchDevices()
+                                    "Dashboards" -> viewModel.fetchDashboards()
+                                }
+                            }) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Atualizar")
+                            }
                         }
                     }
                 )
             }
         ) { padding ->
-            Box(modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)) {
+            Box(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
                 when (currentScreen) {
                     "Home" -> AdminHomeScreen(
                         onNavigateToSetup = { currentScreen = "Setup" },
                         onNavigateToDevices = { currentScreen = "Devices" },
                         onNavigateToMap = { currentScreen = "Map" },
-                        onNavigateToSettings = { currentScreen = "Settings" }
+                        onNavigateToSettings = { currentScreen = "Settings" },
+                        onNavigateToDashboards = { currentScreen = "Dashboards" }
                     )
+
                     "Setup" -> SetupDeviceWizard(viewModel)
-                    "Devices" -> DeviceListScreen(viewModel)
+                    "Devices" -> DeviceListScreen(
+                        viewModel = viewModel,
+                        onNavigateToDashboard = { currentScreen = "Dashboards" }
+                    )
                     "Map" -> MapScreen(viewModel)
                     "Settings" -> SettingsScreen(viewModel, onLogout)
+                    "Dashboards" -> {
+                        if (selectedDevice != null) {
+                            // Se tem um dispositivo selecionado, abre o Dashboard Nativo dele!
+                            DeviceDashboardScreen(
+                                device = selectedDevice!!,
+                                viewModel = viewModel,
+                                onBack = {
+                                    // Ao voltar, vai para a lista de dispositivos
+                                    currentScreen = "Devices"
+                                }
+                            )
+                        } else {
+                            // Se o utilizador clicou no menu "Dashboards" sem escolher um dispositivo antes:
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Default.Devices,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "Nenhum dispositivo selecionado.",
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { currentScreen = "Devices" }) {
+                                    Text("Escolher um Dispositivo")
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

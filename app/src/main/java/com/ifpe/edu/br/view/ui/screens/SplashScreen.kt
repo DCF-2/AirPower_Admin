@@ -53,7 +53,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.padding(vertical = 100.dp))
             RoundedImageIcon(
                 description = "custom icon",
-                iconResId = R.drawable.app_logo,
+                iconResId = R.drawable.logo_airpower_sem_fundo,
                 modifier = Modifier.wrapContentSize()
             )
             Spacer(modifier = Modifier.padding(vertical = 100.dp))
