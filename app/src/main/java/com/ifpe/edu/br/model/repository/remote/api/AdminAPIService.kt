@@ -1,6 +1,7 @@
 package com.ifpe.edu.br.model.repository.remote.api
 
 import com.ifpe.edu.br.model.provisioning.AllowedNetwork
+import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceCredentials
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.repository.remote.dto.PageData
@@ -69,13 +70,26 @@ interface AdminAPIService {
         @Body location: LocationPayload
     ): Response<Void>
 
-    // Adicione esta função dentro da interface AdminAPIService
     @GET("/api/proxy/device/{id}/telemetry/latest")
     suspend fun getLatestTelemetry(
         @Header("X-User-Email") userEmail: String,
         @Path("id") deviceId: String,
         @Query("keys") keys: String // Ex: "latitude,longitude"
     ): Map<String, List<Map<String, Any>>>
+
+    @GET("/api/proxy/tenant/dashboards")
+    suspend fun getTenantDashboards(
+        @Header("X-User-Email") userEmail: String,
+        @Query("pageSize") pageSize: Int = 100,
+        @Query("page") page: Int = 0
+    ): PageData<DashboardInfo>
+
+    @POST("/api/proxy/device/{id}/rpc")
+    suspend fun sendRpcCommand(
+        @Header("X-User-Email") userEmail: String,
+        @Path("id") deviceId: String,
+        @Body payload: Map<String, @JvmSuppressWildcards Any>
+    ): retrofit2.Response<okhttp3.ResponseBody>
 }
 data class LocationPayload(
     val latitude: Double,

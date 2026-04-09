@@ -37,7 +37,7 @@ public class AirPowerUtil {
             if (AirPowerLog.ISLOGABLE)
                 AirPowerLog.w(TAG, "can't retrieve drawable resource: getting default");
             drawable = ResourcesCompat
-                    .getDrawable(resources, R.mipmap.application_icon_foreground, null);
+                    .getDrawable(resources, R.mipmap.ic_launcher_foreground, null);
         }
         return drawable;
     }

@@ -124,4 +124,7 @@ dependencies {
     // Google Maps para Compose
     implementation("com.google.maps.android:maps-compose:4.3.0")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
+
+    implementation("com.patrykandpatrick.vico:compose:1.13.0") // Use a versão mais recente
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.0")
 }

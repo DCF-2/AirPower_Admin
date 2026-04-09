@@ -23,6 +23,7 @@ import com.ifpe.edu.br.model.provisioning.EspProvisioningManager
 import com.ifpe.edu.br.model.repository.AdminRepository
 import com.ifpe.edu.br.model.repository.persistence.manager.JWTManager
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
+import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
 import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.util.ResultWrapper
@@ -109,6 +110,99 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     val provisioningLogs = _provisioningLogs.asStateFlow()
 
     private val wifiManager = application.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+    // Estado para a lista de Dashboards
+    private val _dashboardsList = MutableStateFlow<List<DashboardInfo>>(emptyList())
+    val dashboardsList = _dashboardsList.asStateFlow()
+
+    // ========================================================================
+    // ESTADOS E FUNÇÕES DO DASHBOARD NATIVO (Dispositivo Único)
+    // ========================================================================
+
+    // Guarda a telemetria do dispositivo selecionado para desenhar os Cards
+    private val _currentDeviceTelemetry = MutableStateFlow<Map<String, String>>(emptyMap())
+    val currentDeviceTelemetry = _currentDeviceTelemetry.asStateFlow()
+
+    // Estado do botão de Power para a UI reagir na hora
+    private val _devicePowerState = MutableStateFlow(false)
+    val devicePowerState = _devicePowerState.asStateFlow()
+
+    // Em vez de guardar apenas a String atual, guarde uma lista de valores Float
+    private val _telemetryHistory = MutableStateFlow<Map<String, List<Float>>>(emptyMap())
+    val telemetryHistory = _telemetryHistory.asStateFlow()
+
+    // Limite de pontos no gráfico para não estourar a memória do telemóvel
+    private val MAX_HISTORY_POINTS = 20
+
+    fun fetchDeviceTelemetry(deviceId: String) {
+        viewModelScope.launch {
+            val result = repository.getLatestTelemetry(deviceId, emptyList())
+
+            if (result is ResultWrapper.Success) {
+                try {
+                    val currentCardMap = mutableMapOf<String, String>()
+                    // Pega o histórico atual para podermos adicionar novos pontos
+                    val currentHistory = _telemetryHistory.value.toMutableMap()
+
+                    result.value.forEach { (key, valueList) ->
+                        val rawValueString = valueList.firstOrNull()?.get("value")?.toString()
+                        val rawValueFloat = rawValueString?.toFloatOrNull() // Tenta converter para número
+
+                        if (rawValueString != null) {
+                            // Lógica de UI para a Aba 1 (Cartões) e Aba 2 (Ar Condicionado)
+                            if (key.equals("state", true) || key.equals("power", true)) {
+                                _devicePowerState.value = rawValueString == "true" || rawValueString == "1"
+                                currentCardMap["Estado"] = if (_devicePowerState.value) "Ligado" else "Desligado"
+                            } else {
+                                val formattedName = key.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                                currentCardMap[formattedName] = rawValueString // Pode aplicar a formatação de °C aqui
+
+                                // === LÓGICA DO GRÁFICO (NOVO) ===
+                                // Se for um número (ex: 24.5), adiciona ao histórico do gráfico!
+                                if (rawValueFloat != null) {
+                                    val pointList = currentHistory[formattedName]?.toMutableList() ?: mutableListOf()
+                                    pointList.add(rawValueFloat)
+                                    // Remove o ponto mais antigo se passar do limite (faz o gráfico "andar")
+                                    if (pointList.size > MAX_HISTORY_POINTS) pointList.removeAt(0)
+
+                                    currentHistory[formattedName] = pointList
+                                }
+                            }
+                        }
+                    }
+                    _currentDeviceTelemetry.value = currentCardMap
+                    _telemetryHistory.value = currentHistory // Atualiza os gráficos!
+
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+        }
+    }
+
+    // Função chamada pelos botões redondos da nova Interface Nativa
+    fun sendRpcCommand(deviceId: String, method: String, params: Any) {
+        viewModelScope.launch {
+            // Otimização de UI (Optimistic UI Update): Muda a cor do botão na hora, sem esperar o servidor
+            if (method == "setPower" && params is Boolean) {
+                _devicePowerState.value = params
+            }
+
+            addProvisioningLog("Enviando RPC: $method -> $params")
+
+            val result = repository.sendRpcCommand(deviceId, method, params)
+
+            if (result !is ResultWrapper.Success) {
+                // Se der erro, desfaz a animação do botão e avisa o utilizador
+                addProvisioningLog("Erro ao enviar comando para a placa.")
+                // Pode lançar um Toast ou Snackbar aqui
+            }
+        }
+    }
+
+    fun selectDeviceForDashboard(device: ThingsBoardDevice) {
+        _selectedDevice.value = device
+        // Já dispara a busca da temperatura e humidade!
+        fetchDeviceTelemetry(device.id.id)
+    }
 
     // ========================================================================
     // FUNÇÕES DO WIZARD PROGRESSIVO
@@ -582,5 +676,29 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 onResult(false, "Falha de conexão. Verifique se o servidor Proxy está configurado e online.")
             }
         }
+    }
+
+    fun fetchDashboards() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = repository.getTenantDashboards()
+            if (result is ResultWrapper.Success) {
+                _dashboardsList.value = result.value
+            }
+            _isLoading.value = false
+        }
+    }
+
+    // Função auxiliar para pegar a URL pura do TB salva no login
+    fun getCleanTbUrl(): String {
+        val rawTbUrl = prefs.readString("LOGGED_USER_TB_URL") ?: prefs.proxyBaseUrl
+        return rawTbUrl.replace("http://", "").replace("https://", "").substringBefore(":").trim()
+    }
+
+    // Traz a URL completa e exata para a WebView (Evita o erro de TLS/HTTPS)
+    fun getFullTbUrl(): String {
+        val rawUrl = prefs.readString("LOGGED_USER_TB_URL") ?: prefs.proxyBaseUrl
+        // Se a url original não tiver http/https explícito, assume http
+        return if (!rawUrl.startsWith("http")) "http://$rawUrl" else rawUrl
     }
 }

@@ -11,7 +11,7 @@ data class ThingsBoardDevice(
     @SerializedName("name") val name: String,
     @SerializedName("type") val type: String? = null,
     @SerializedName("label") val label: String?,
-    @SerializedName("active") val active: Boolean? = null
+    @SerializedName("active") val active: Boolean?
 )
 
 data class DeviceId(
