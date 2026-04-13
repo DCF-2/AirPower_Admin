@@ -65,6 +65,7 @@ ESP -- 5️⃣ Envio de Telemetria --> TB
 API <-- 6️⃣ Consulta de dados --> TB
 APP <-- 7️⃣ Dados processados --> API
 ```
+---
 
 ### 🔹 Jetpack Compose (UI)
 
@@ -209,7 +210,7 @@ O aplicativo **nunca acessa diretamente o ThingsBoard**.
 # 📂 Estrutura do Projeto (Clean Architecture)
 
 O projeto está dividido em três módulos principais para garantir a separação de responsabilidades, reutilização de código e escalabilidade:
-```mermaid
+```
 📦 airpower_admin
 ┣ 📂 core/                        # ⚙️ Módulo de Baixo Nível (Hardware/Rede)
 ┃ ┗ 📂 src/main/java/.../core/
