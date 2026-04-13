@@ -1,16 +1,49 @@
-*.iml
-.gradle
-/local.properties
+### --- ANDROID & KOTLIN ---
+build/
+.gradle/
+local.properties
+/captures/
+.externalNativeBuild/
+.cxx/
+.kotlin/
+*.kt.bak
+*.kt.class
+
+### --- INTELLIJ / ANDROID STUDIO ---
+# Ignora a pasta .idea inteira (mais seguro)
+.idea/
+# Caso queira ignorar apenas os caches e manter configs de estilo,
+# você já tem as entradas específicas, mas .idea/ cobre todas elas:
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+
+*.iml
+*.iws
+*.ipr
+.shelf/
+
+### --- SEGURANÇA E CHAVES ---
+*.jks
+*.keystore
+*.p12
+secrets.properties
+#Descomente se o projeto for open source e usar Firebase
+google-services.json
+
+
+### --- BINÁRIOS E EXECUTÁVEIS ---
+*.apk
+*.apks
+*.aab
+
+### --- SISTEMA OPERACIONAL ---
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-.idea/
+Thumbs.db
+desktop.ini
+
+### --- VS CODE ---
+.vscode/
