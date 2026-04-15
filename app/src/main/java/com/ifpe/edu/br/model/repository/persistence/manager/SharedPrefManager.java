@@ -3,15 +3,17 @@ package com.ifpe.edu.br.model.repository.persistence.manager;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKey;
+
 import com.ifpe.edu.br.model.Constants;
 import com.ifpe.edu.br.model.util.AirPowerLog;
 
-
 public class SharedPrefManager {
     private static final String TAG = SharedPrefManager.class.getSimpleName();
-    private static final String PREF_FILE_NAME = "AirPowerAdmin-Preference";
-    private final SharedPreferences mSP;
-    private final SharedPreferences.Editor mEditor;
+    private static final String PREF_FILE_NAME = "AirPowerAdmin-Preference-Secure";
+    private SharedPreferences mSP;
+    private SharedPreferences.Editor mEditor;
     private static SharedPrefManager instance;
 
     private static final String KEY_IS_FIRST_RUN = "is_first_run";
@@ -32,9 +34,33 @@ public class SharedPrefManager {
     }
 
     private SharedPrefManager(Context context) {
-        mSP = context.getSharedPreferences(PREF_FILE_NAME, Context.MODE_PRIVATE);
-        mEditor = mSP.edit();
-        this.context = context;
+        this.context = context.getApplicationContext(); // Previne Memory Leaks
+
+        try {
+            // 1. Cria a Chave Mestra baseada no hardware do aparelho (Android Keystore)
+            MasterKey masterKey = new MasterKey.Builder(this.context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            // 2. Inicializa o SharedPreferences Encriptado
+            // A chave usa AES256-SIV e o valor usa AES256-GCM
+            mSP = EncryptedSharedPreferences.create(
+                    this.context,
+                    PREF_FILE_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+
+            mEditor = mSP.edit();
+
+        } catch (Exception e) {
+            AirPowerLog.e(TAG, "Falha Crítica ao inicializar EncryptedSharedPreferences: " + e.getMessage());
+            // Em caso extremo de falha da Keystore (raro, mas acontece em devices antigos ou modificados)
+            // Fazemos fallback para o antigo como medida de segurança mínima de funcionamento
+            mSP = this.context.getSharedPreferences("AirPowerAdmin-Preference", Context.MODE_PRIVATE);
+            mEditor = mSP.edit();
+        }
     }
 
     public void writeString(String key, String value) {
@@ -64,12 +90,10 @@ public class SharedPrefManager {
     // MÉTODOS DE REDE DINÂMICA (BFF PROXY)
     // ==========================================
 
-    // Busca a URL do Servidor Proxy salva no celular (Ex: http://10.5.0.68:8080)
     public String getProxyBaseUrl() {
         return mSP.getString(Constants.AppConfig.PREF_PROXY_URL_KEY, "");
     }
 
-    // Salva a nova URL do Servidor
     public void setProxyBaseUrl(String proxyUrl) {
         writeString(Constants.AppConfig.PREF_PROXY_URL_KEY, proxyUrl);
         writeBoolean(KEY_IS_FIRST_RUN, false);

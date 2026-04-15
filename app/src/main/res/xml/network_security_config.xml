@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-
-    <!-- Permite conexões inseguras (DEV ONLY) -->
-    <base-config cleartextTrafficPermitted="true">
-        <trust-anchors>
-            <certificates src="system"/>
-            <certificates src="user"/>
-        </trust-anchors>
-    </base-config>
-
-    <!-- Permitir seu domínio/IP -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.5.0.66</domain>
         <domain includeSubdomains="true">10.5.0.68</domain>
+        <domain includeSubdomains="true">10.5.0.66</domain>
+        <domain includeSubdomains="true">192.168.0.1</domain>
+        <domain includeSubdomains="true">localhost</domain>
     </domain-config>
 
+    <base-config cleartextTrafficPermitted="false" />
 </network-security-config>

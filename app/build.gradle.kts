@@ -127,4 +127,6 @@ dependencies {
 
     implementation("com.patrykandpatrick.vico:compose:1.13.0") // Use a versão mais recente
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.0")
+
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 }
