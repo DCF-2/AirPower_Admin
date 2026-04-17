@@ -68,27 +68,11 @@ class AdminRepository private constructor(private val context: Context) {
             // ---> SALVA A URL DO THINGSBOARD PARA USAR NA ESP32 <---
             tokenResponse.tbUrl?.let { prefs.writeString("LOGGED_USER_TB_URL", it)}
 
-            // Salva o Token no Banco de Dados
+            // ---> A CORREÇÃO: DELEGA PARA O JWTManager SALVAR TUDO CORRETAMENTE <---
             val connectionId = Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD
-            val existingToken = getTokenByConnectionId(connectionId)
 
-            if (existingToken != null) {
-                // No Kotlin, isso chama automaticamente o setJwt() e setRefreshToken() do Java!
-                existingToken.jwt = tokenResponse.token
-
-                // Se a sua data class Token tiver o campo refreshToken, use:
-                // existingToken.refreshToken = tokenResponse.refreshToken
-
-                update(existingToken)
-            } else {
-
-                val newToken = com.ifpe.edu.br.model.repository.persistence.model.AirPowerToken(
-                    connectionId,          // client
-                    tokenResponse.token,    // jwt
-                    "",            // refreshToken (ou tokenResponse.refreshToken)
-                    ""                  // scope
-                )
-                save(newToken)
+            JWTManager.handleAuthentication(connectionId, tokenResponse) { savedToken ->
+                com.ifpe.edu.br.model.util.AirPowerLog.d("AdminRepository", "Token e Refresh Token salvos com sucesso via JWTManager!")
             }
 
             ResultWrapper.Success(tokenResponse)
