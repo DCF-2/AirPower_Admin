@@ -8,6 +8,13 @@ package com.ifpe.edu.br.view.ui.theme
 import androidx.compose.ui.graphics.Color
 import com.ifpe.edu.br.common.contracts.AppColorScheme
 
+// A Nova Identidade Visual AirPower
+val AirPowerDarkBlue = Color(0xFF0B3D91)   // Azul Escuro Profundo e Profissional
+val AirPowerLightBlue = Color(0xFF1E90FF)  // Azul Claro Moderno
+val AirPowerWhite = Color(0xFFFFFFFF)      // Branco Puro
+val AirPowerLightGray = Color(0xFFF4F6F8)  // Cinza Claro (Fundo Clean)
+val AirPowerSurfaceDark = Color(0xFF1E1E2C) // Fundo Escuro Suave (Não é preto puro!)
+
 // Light Colors
 val primaryLightAppColor = Color(0xFF25669B)
 val onPrimaryLightAppColor = Color(0xFAD8DADE)
