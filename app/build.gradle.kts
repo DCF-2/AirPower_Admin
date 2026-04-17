@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.play.services.location)
+    implementation(libs.androidx.compose.animation)
     ksp(libs.androidx.room.compiler)
 
     // Retrofit

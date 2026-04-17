@@ -31,6 +31,9 @@ fun AdminMainScreen(
     var currentScreen by remember { mutableStateOf("Home") }
     val selectedDevice by viewModel.selectedDevice.collectAsState()
 
+    // Snackbar para alertas flutuantes (ex: Falha no comando RPC)
+    val snackbarHostState = remember { SnackbarHostState() }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = currentScreen != "Map",

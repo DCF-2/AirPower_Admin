@@ -20,7 +20,7 @@ import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
 
 class AdminRepository private constructor(private val context: Context) {
 
-    private val adminServerManager = AdminServerManager()
+    private val adminServerManager = AdminServerManager(context)
     private val tokenDao = AirPowerDatabase.getDataBaseInstance(context).getTokenDaoInstance()
     private val prefs = SharedPrefManager.getInstance(context)
 
@@ -59,20 +59,36 @@ class AdminRepository private constructor(private val context: Context) {
             val service = adminServerManager.getService(null)
             val tokenResponse = service.login(credentials)
 
-            // Salva o email na sessão
+            // Salva dados auxiliares na sessão
             prefs.writeString("LOGGED_USER_EMAIL", credentials.email)
-
-            // ---> SALVA O MOMENTO EXATO DO LOGIN (Timestamp em Milissegundos) <---
             prefs.writeString("LOGIN_TIMESTAMP", System.currentTimeMillis().toString())
-
-            // ---> SALVA A URL DO THINGSBOARD PARA USAR NA ESP32 <---
             tokenResponse.tbUrl?.let { prefs.writeString("LOGGED_USER_TB_URL", it)}
 
-            // ---> A CORREÇÃO: DELEGA PARA O JWTManager SALVAR TUDO CORRETAMENTE <---
             val connectionId = Constants.ServerConnectionIds.CONNECTION_ID_THINGSBOARD
 
-            JWTManager.handleAuthentication(connectionId, tokenResponse) { savedToken ->
-                com.ifpe.edu.br.model.util.AirPowerLog.d("AdminRepository", "Token e Refresh Token salvos com sucesso via JWTManager!")
+            val existingToken = getTokenByConnectionId(connectionId)
+
+            if (existingToken != null) {
+                existingToken.jwt = tokenResponse.token
+                existingToken.refreshToken = tokenResponse.refreshToken
+                update(existingToken)
+                com.ifpe.edu.br.model.util.AirPowerLog.d("AdminRepository", "Token atualizado fisicamente no DB!")
+            } else {
+                val newToken = AirPowerToken(
+                    connectionId,
+                    tokenResponse.token,
+                    tokenResponse.refreshToken,
+                    tokenResponse.scope ?: "TENANT_ADMIN"
+                )
+                save(newToken)
+                com.ifpe.edu.br.model.util.AirPowerLog.d("AdminRepository", "Novo Token salvo fisicamente no DB!")
+            }
+
+            // Mantemos o handleAuthentication apenas para atualizar variáveis em memória (se o JWTManager precisar)
+            try {
+                JWTManager.handleAuthentication(connectionId, tokenResponse) { }
+            } catch (e: Exception) {
+                // Ignoramos erros do JWTManager, o banco já está seguro.
             }
 
             ResultWrapper.Success(tokenResponse)
