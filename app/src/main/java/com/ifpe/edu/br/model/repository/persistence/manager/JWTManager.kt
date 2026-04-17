@@ -183,13 +183,13 @@ object JWTManager {
                 false
             }
 
-            token.token.isBlank() || token.token.length < 50 -> {
+            token.token.isNullOrBlank() || token.token.length < 50 -> {
                 if (AirPowerLog.ISVERBOSE)
                     AirPowerLog.w(TAG, "JWT is NOT valid")
                 false
             }
 
-            token.refreshToken.isBlank() || token.refreshToken.length < 50 -> {
+            token.refreshToken.isNullOrBlank() || token.refreshToken.length < 50 -> {
                 if (AirPowerLog.ISLOGABLE)
                     AirPowerLog.w(TAG, "Refresh token is NOT valid")
                 false

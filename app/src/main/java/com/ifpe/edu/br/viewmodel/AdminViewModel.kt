@@ -10,6 +10,9 @@ import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -38,10 +41,15 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.SocketTimeoutException
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 
 class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = AdminRepository.getInstance(application)
+    internal val repository = AdminRepository.getInstance(application)
     private val prefs = SharedPrefManager.getInstance(application)
     private val provisioningManager = EspProvisioningManager()
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
@@ -133,6 +141,66 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     // Limite de pontos no gráfico para não estourar a memória do telemóvel
     private val MAX_HISTORY_POINTS = 20
+
+    // ==========================================
+    // ESTADOS DE FEEDBACK DA UI (UX)
+    // ==========================================
+
+    var connectionError by mutableStateOf(false)
+        private set
+
+    var isPollingActive by mutableStateOf(false)
+        private set
+    
+
+    // ==========================================
+    // MÉTODOS DE CONTROLO (RPC) E OTIMISMO
+    // ==========================================
+
+    /**
+     * Envia um comando RPC para a ESP32 e devolve o sucesso ou falha
+     * para que a Interface Otimista possa reverter o botão em caso de erro.
+     */
+    // ==========================================
+    // MÉTODOS DE CONTROLE (RPC) E OTIMISMO
+    // ==========================================
+    suspend fun sendDeviceCommand(deviceId: String, method: String, params: Any): Boolean {
+        return try {
+            val result = repository.sendRpcCommand(deviceId, method, params)
+            if (result is ResultWrapper.Success) {
+                connectionError = false // ATRIBUIÇÃO DIRETA
+                true
+            } else {
+                connectionError = true  // ATRIBUIÇÃO DIRETA
+                false
+            }
+        } catch (e: Exception) {
+            connectionError = true      // ATRIBUIÇÃO DIRETA
+            false
+        }
+    }
+
+    // Polling contínuo da lista de Devices (Aba Dispositivos)
+    fun fetchDevicesDataPeriodically() {
+        viewModelScope.launch {
+            while (isActive) {
+                isPollingActive = true // ATRIBUIÇÃO DIRETA
+
+                val response = repository.getTenantDevices()
+
+                isPollingActive = false // ATRIBUIÇÃO DIRETA
+
+                if (response is ResultWrapper.Success) {
+                    connectionError = false // ATRIBUIÇÃO DIRETA
+                    _devicesList.value = response.value
+                } else {
+                    connectionError = true // ATRIBUIÇÃO DIRETA
+                    // Mantém a lista anterior intacta se falhar
+                }
+                delay(5000)
+            }
+        }
+    }
 
     fun fetchDeviceTelemetry(deviceId: String) {
         viewModelScope.launch {

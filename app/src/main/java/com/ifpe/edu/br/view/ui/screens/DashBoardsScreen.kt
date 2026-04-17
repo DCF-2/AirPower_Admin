@@ -32,6 +32,7 @@ import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.core.entry.FloatEntry
 import com.patrykandpatrick.vico.compose.chart.line.lineSpec
 import com.patrykandpatrick.vico.core.entry.entryModelOf
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -169,80 +170,120 @@ fun TelemetryAutoGrid(telemetryMap: Map<String, String>) {
 }
 
 // =================================================================
-// ABA 2: CONTROLE NATIVO DE AR CONDICIONADO
+// ABA 2: CONTROLE NATIVO DE AR CONDICIONADO (OPTIMISTIC UI + SYNC)
 // =================================================================
 @Composable
 fun AirConditionerRemoteControl(deviceId: String, viewModel: AdminViewModel) {
     val powerState by viewModel.devicePowerState.collectAsState()
-    var targetTemp by remember { mutableStateOf(23) }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(24.dp))
+    // Puxa o mapa de telemetria que já está a ser atualizado no background!
+    val telemetryMap by viewModel.currentDeviceTelemetry.collectAsState()
 
-        Box(
-            modifier = Modifier
-                .size(200.dp)
-                .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(if (powerState) Color(0xFFE3F2FD) else Color(0xFFEEEEEE)),
-            contentAlignment = Alignment.Center
+    // ESTADOS LOCAIS (Optimistic UI)
+    var isPowerOnLocal by remember(powerState) { mutableStateOf(powerState) }
+    var targetTemp by remember { mutableStateOf(24) }
+
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // --- TAREFA 5: Sincronização da Temperatura Alvo ---
+    // Sempre que a telemetria atualizar, verificamos se veio a "targetTemperature"
+    LaunchedEffect(telemetryMap) {
+        telemetryMap["targetTemperature"]?.toFloatOrNull()?.let { tempRealDaPlaca ->
+            targetTemp = tempRealDaPlaca.toInt()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Alvo", color = Color.Gray, fontSize = 14.sp)
-                Text(if (powerState) "$targetTemp°" else "--", fontSize = 64.sp, fontWeight = FontWeight.Bold, color = if(powerState) Color(0xFF1976D2) else Color.Gray)
-                Text("Ar Condicionado", color = Color.Gray, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(if (isPowerOnLocal) Color(0xFFE3F2FD) else Color(0xFFEEEEEE)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Alvo", color = Color.Gray, fontSize = 14.sp)
+                    Text(
+                        text = if (isPowerOnLocal) "$targetTemp°" else "--",
+                        fontSize = 64.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if(isPowerOnLocal) Color(0xFF1976D2) else Color.Gray
+                    )
+                    Text("Ar Condicionado", color = Color.Gray, fontSize = 14.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FilledIconButton(
+                    onClick = {
+                        if(isPowerOnLocal && targetTemp > 16) {
+                            val novaTemp = targetTemp - 1
+                            targetTemp = novaTemp // Optimistic UI na temperatura
+                            viewModel.sendRpcCommand(deviceId, "setTemperature", novaTemp)
+                        }
+                    },
+                    modifier = Modifier.size(64.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) { Icon(androidx.compose.material.icons.Icons.Default.Remove, contentDescription = "Diminuir", modifier = Modifier.size(32.dp)) }
+
+                FilledIconButton(
+                    onClick = {
+                        val novoEstado = !isPowerOnLocal
+                        isPowerOnLocal = novoEstado // Optimistic UI no Power
+
+                        scope.launch {
+                            val sucesso = viewModel.sendDeviceCommand(deviceId, "setPower", novoEstado)
+                            if (!sucesso) {
+                                isPowerOnLocal = !novoEstado
+                                snackbarHostState.showSnackbar("Falha ao comunicar com a placa ESP32.", duration = SnackbarDuration.Short)
+                            }
+                        }
+                    },
+                    modifier = Modifier.size(80.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = if (isPowerOnLocal) Color(0xFF4CAF50) else Color(0xFFE53935),
+                        contentColor = Color.White
+                    )
+                ) { Icon(androidx.compose.material.icons.Icons.Default.PowerSettingsNew, contentDescription = "Ligar/Desligar", modifier = Modifier.size(40.dp)) }
+
+                FilledIconButton(
+                    onClick = {
+                        if(isPowerOnLocal && targetTemp < 30) {
+                            val novaTemp = targetTemp + 1
+                            targetTemp = novaTemp // Optimistic UI na temperatura
+                            viewModel.sendRpcCommand(deviceId, "setTemperature", novaTemp)
+                        }
+                    },
+                    modifier = Modifier.size(64.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) { Icon(androidx.compose.material.icons.Icons.Default.Add, contentDescription = "Aumentar", modifier = Modifier.size(32.dp)) }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                OutlinedButton(onClick = { viewModel.sendRpcCommand(deviceId, "setMode", "cool") }) { Text("Modo Frio") }
+                OutlinedButton(onClick = { viewModel.sendRpcCommand(deviceId, "setFanSpeed", "high") }) { Text("Vento Alto") }
             }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            FilledIconButton(
-                onClick = {
-                    if(powerState && targetTemp > 16) {
-                        targetTemp--
-                        viewModel.sendRpcCommand(deviceId, "setTemperature", targetTemp)
-                    }
-                },
-                modifier = Modifier.size(64.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-            ) { Icon(Icons.Default.Remove, contentDescription = "Diminuir", modifier = Modifier.size(32.dp)) }
-
-            FilledIconButton(
-                onClick = {
-                    viewModel.sendRpcCommand(deviceId, "setPower", !powerState)
-                },
-                modifier = Modifier.size(80.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = if (powerState) Color(0xFF4CAF50) else Color(0xFFE53935),
-                    contentColor = Color.White
-                )
-            ) { Icon(Icons.Default.PowerSettingsNew, contentDescription = "Ligar/Desligar", modifier = Modifier.size(40.dp)) }
-
-            FilledIconButton(
-                onClick = {
-                    if(powerState && targetTemp < 30) {
-                        targetTemp++
-                        viewModel.sendRpcCommand(deviceId, "setTemperature", targetTemp)
-                    }
-                },
-                modifier = Modifier.size(64.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-            ) { Icon(Icons.Default.Add, contentDescription = "Aumentar", modifier = Modifier.size(32.dp)) }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            OutlinedButton(onClick = { viewModel.sendRpcCommand(deviceId, "setMode", "cool") }) { Text("Modo Frio") }
-            OutlinedButton(onClick = { viewModel.sendRpcCommand(deviceId, "setFanSpeed", "high") }) { Text("Vento Alto") }
-        }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
