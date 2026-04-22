@@ -17,7 +17,23 @@ import com.ifpe.edu.br.model.repository.remote.dto.auth.Token
 import com.ifpe.edu.br.model.util.ResultWrapper
 import com.ifpe.edu.br.model.repository.remote.api.LocationPayload
 import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
+@Module
+@InstallIn(SingletonComponent::class)
+object RepositoryModule {
+
+    @Provides
+    @Singleton
+    fun provideAdminRepository(@ApplicationContext context: Context): AdminRepository {
+        return AdminRepository.getInstance(context)
+    }
+}
 class AdminRepository private constructor(private val context: Context) {
 
     private val adminServerManager = AdminServerManager(context)

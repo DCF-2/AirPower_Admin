@@ -13,7 +13,9 @@ import com.ifpe.edu.br.view.ui.screens.AdminMainScreen
 import com.ifpe.edu.br.view.ui.theme.darkAppThemeSchema
 import com.ifpe.edu.br.view.ui.theme.lightAppThemeSchema
 import com.ifpe.edu.br.viewmodel.AdminViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class AdminActivity : ComponentActivity() {
 
     // Instanciação moderna e segura do cérebro da tela

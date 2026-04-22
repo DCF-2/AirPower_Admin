@@ -5,7 +5,9 @@ import android.content.Context
 import com.ifpe.edu.br.model.repository.AdminRepository
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.util.AirPowerLog
+import dagger.hilt.android.HiltAndroidApp
 
+@HiltAndroidApp
 class AirPowerApplication : Application() {
     private val tag = AirPowerApplication::class.simpleName
 
