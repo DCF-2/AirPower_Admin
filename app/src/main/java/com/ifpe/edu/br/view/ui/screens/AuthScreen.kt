@@ -174,11 +174,10 @@ fun AuthScreen(
                             errorMessage = ""
 
                             scope.launch {
-                                val result = AdminRepository.getInstance(componentActivity)
-                                    .login(LoginRequest(email, password))
+                                val result = viewModel.repository.login(LoginRequest(email, password))
 
                                 isLoading = false
-                                if (result is ResultWrapper.Success) {
+                                if (result is ResultWrapper.Success<*>) {
                                     navController.popBackStack()
                                     AirPowerUtil.launchActivity(componentActivity, com.ifpe.edu.br.view.AdminActivity::class.java)
                                     componentActivity.finish()

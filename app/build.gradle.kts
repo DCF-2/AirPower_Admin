@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
+    id("kotlin-kapt")
 }
 
 val localProperties = Properties()
@@ -83,6 +84,10 @@ android {
     }
 }
 
+kapt {
+    correctErrorTypes = true
+}
+
 dependencies {
 
     // Compose
@@ -133,8 +138,8 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Dagger Hilt
-    implementation("com.google.dagger:hilt-android:2.51.1")
-    ksp("com.google.dagger:hilt-android-compiler:2.51.1")
+    implementation("com.google.dagger:hilt-android:2.55")
+    kapt("com.google.dagger:hilt-android-compiler:2.55")
 
     // Extensão do Hilt para o Jetpack Compose e ViewModels
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")

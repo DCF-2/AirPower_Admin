@@ -2,8 +2,6 @@ package com.ifpe.edu.br
 
 import android.app.Application
 import android.content.Context
-import com.ifpe.edu.br.model.repository.AdminRepository
-import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.util.AirPowerLog
 import dagger.hilt.android.HiltAndroidApp
 
@@ -13,20 +11,20 @@ class AirPowerApplication : Application() {
 
     companion object {
         private lateinit var instance: AirPowerApplication
+
+        // Mantemos o getContext() apenas se você tiver classes muito antigas
+        // ou utilitários (utils) que dependam estritamente deste contexto estático.
         fun getContext(): Context {
             return instance.applicationContext
         }
     }
 
     override fun onCreate() {
-        if (AirPowerLog.ISLOGABLE) AirPowerLog.d(tag, "onCreate() - Starting AirPower Admin")
         super.onCreate()
         instance = this
 
-        // Inicializa o nosso novo Repositório Global com o Contexto
-        AdminRepository.getInstance(applicationContext)
-
-        // Inicializa o Shared Preferences
-        SharedPrefManager.getInstance(applicationContext)
+        if (AirPowerLog.ISLOGABLE) {
+            AirPowerLog.d(tag, "onCreate() - Starting AirPower Admin with Dagger Hilt")
+        }
     }
 }
