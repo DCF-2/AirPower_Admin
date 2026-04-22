@@ -25,7 +25,9 @@ import com.ifpe.edu.br.view.ui.screens.SplashScreen
 import com.ifpe.edu.br.view.ui.theme.darkAppThemeSchema
 import com.ifpe.edu.br.view.ui.theme.lightAppThemeSchema
 import com.ifpe.edu.br.viewmodel.AdminViewModel // O nosso novo cérebro!
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class AuthActivity : ComponentActivity() {
     val TAG = "AuthActivity"
 

@@ -44,13 +44,18 @@ import java.net.SocketTimeoutException
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
+import javax.inject.Inject
 
-class AdminViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class AdminViewModel @Inject constructor(
+    application: Application,
+    val repository: AdminRepository, // <--- INJETADO PELO HILT!
+    private val prefs: SharedPrefManager, // <--- INJETADO PELO HILT!
+) : AndroidViewModel(application) {
 
-    internal val repository = AdminRepository.getInstance(application)
-    private val prefs = SharedPrefManager.getInstance(application)
     private val provisioningManager = EspProvisioningManager()
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
 

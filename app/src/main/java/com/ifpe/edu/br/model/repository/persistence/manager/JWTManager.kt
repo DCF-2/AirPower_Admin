@@ -1,7 +1,7 @@
 package com.ifpe.edu.br.model.repository.persistence.manager
 
-
-import com.ifpe.edu.br.model.repository.AdminRepository
+import com.ifpe.edu.br.AirPowerApplication
+import com.ifpe.edu.br.model.repository.persistence.AirPowerDatabase
 import com.ifpe.edu.br.model.repository.persistence.model.AirPowerToken
 import com.ifpe.edu.br.model.repository.remote.dto.auth.Token
 import com.ifpe.edu.br.model.util.AirPowerLog
@@ -10,7 +10,12 @@ import java.util.Base64
 
 object JWTManager {
     private val TAG = JWTManager::class.java.simpleName
-    private val repository: AdminRepository = AdminRepository.getInstance()
+
+    // O SEGREDO: Em vez do AdminRepository, usamos o DAO diretamente
+    // através do contexto global da nossa Application!
+    private val tokenDao by lazy {
+        AirPowerDatabase.getDataBaseInstance(AirPowerApplication.getContext()).getTokenDaoInstance()
+    }
 
     suspend fun handleAuthentication(
         connectionId: Int,
@@ -27,14 +32,14 @@ object JWTManager {
             token.scope ?: ""
         )
 
-        val clientToken = repository.getTokenByConnectionId(connectionId)
+        val clientToken = tokenDao.getTokenByClient(connectionId)
 
         if (clientToken == null) {
             if (AirPowerLog.ISVERBOSE) AirPowerLog.d(TAG, "Token NOT found. Creating!")
-            repository.save(persistToken)
+            tokenDao.insert(persistToken)
         } else {
             if (AirPowerLog.ISVERBOSE) AirPowerLog.d(TAG, "Token found. Updating!")
-            repository.update(persistToken)
+            tokenDao.update(persistToken)
         }
 
         authCallback(persistToken)
@@ -46,7 +51,7 @@ object JWTManager {
         authCallback: suspend (AirPowerToken) -> Unit
     ) {
         if (AirPowerLog.ISVERBOSE) AirPowerLog.d(TAG, "handleRefreshToken()")
-        val storedToken = repository.getTokenByConnectionId(connectionId)
+        val storedToken = tokenDao.getTokenByClient(connectionId)
             ?: throw IllegalStateException("Stored Token not found")
 
         require(isTokenValid(getTokenFromAirPowerToken(storedToken))) { "Stored Token is not valid" }
@@ -58,49 +63,12 @@ object JWTManager {
             scope = incomingToken.scope ?: ""
         }
 
-        repository.update(storedToken)
+        tokenDao.update(storedToken)
         authCallback(storedToken)
     }
 
-//    suspend fun isTokenExpiredForConnection(connectionId: Int): Boolean {
-//        val tokenByClient = repository.getTokenByConnectionId(connectionId) ?: return true.also {
-//            AirPowerLog.w(TAG, "Token not found for connectionId: $connectionId")
-//        }
-//
-//        val jwtParts = tokenByClient.jwt.split(".")
-//        if (jwtParts.size != 3) return true.also {
-//            if (AirPowerLog.ISVERBOSE)
-//                AirPowerLog.w(TAG, "Invalid JWT format")
-//        }
-//
-//        return try {
-//            val decodedPayload = Base64.getUrlDecoder().decode(jwtParts[1]).decodeToString()
-//            val expIndex = decodedPayload.indexOf("\"exp\"")
-//
-//            if (expIndex != -1) {
-//                val expValue = decodedPayload.substring(expIndex)
-//                    .substringAfter(":")
-//                    .substringBefore(",")
-//                    .trim()
-//                    .toLong()
-//
-//                val now = System.currentTimeMillis() / 1000
-//                if (AirPowerLog.ISVERBOSE)
-//                    AirPowerLog.d(TAG, "exp: $expValue, system time: $now")
-//                expValue < now
-//            } else {
-//                if (AirPowerLog.ISVERBOSE)
-//                    AirPowerLog.e(TAG, "Expiration time not found")
-//                true
-//            }
-//        } catch (e: Exception) {
-//            AirPowerLog.e(TAG, "Error parsing JWT: ${e.message}")
-//            true
-//        }
-//    }
-
     suspend fun isTokenExpiredForConnection(connectionId: Int): Boolean {
-        val tokenByClient = repository.getTokenByConnectionId(connectionId) ?: return true.also {
+        val tokenByClient = tokenDao.getTokenByClient(connectionId) ?: return true.also {
             AirPowerLog.w(TAG, "Token not found for connectionId: $connectionId")
         }
 
@@ -129,7 +97,6 @@ object JWTManager {
         return JSONObject(String(decoded))
     }
 
-
     suspend fun getJwtForConnectionId(connectionId: Int): String {
         if (AirPowerLog.ISVERBOSE)
             AirPowerLog.d(TAG, "getJWTForConnectionId(): $connectionId")
@@ -139,7 +106,7 @@ object JWTManager {
     suspend fun getTokenForConnectionId(connectionId: Int): Token? {
         if (AirPowerLog.ISVERBOSE)
             AirPowerLog.d(TAG, "getTokenForConnectionId(): $connectionId")
-        val token = repository.getTokenByConnectionId(connectionId)
+        val token = tokenDao.getTokenByClient(connectionId)
 
         return token?.let { getTokenFromAirPowerToken(it) }
             ?: run {
@@ -150,20 +117,18 @@ object JWTManager {
     }
 
     suspend fun resetTokenForConnection(connectionId: Int) {
-        repository.getTokenByConnectionId(connectionId)?.apply {
+        tokenDao.getTokenByClient(connectionId)?.apply {
             scope = "empty"
             jwt = "empty"
             refreshToken = "empty"
             if (AirPowerLog.ISLOGABLE)
                 AirPowerLog.d(TAG, "Resetting token for connectionId: $connectionId")
-            repository.update(this)
+            tokenDao.update(this)
         } ?: AirPowerLog.w(TAG, "Token not found for connectionId: $connectionId")
     }
 
     private fun getTokenFromAirPowerToken(airPowerToken: AirPowerToken): Token {
         return try {
-//            if (AirPowerLog.ISLOGABLE)
-//                AirPowerLog.d(TAG, "getTokenFromAirPowerToken: $airPowerToken")
             Token(
                 airPowerToken.jwt,
                 airPowerToken.refreshToken,
