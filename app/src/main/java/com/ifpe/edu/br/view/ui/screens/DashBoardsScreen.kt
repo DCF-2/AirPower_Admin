@@ -48,14 +48,18 @@ fun DeviceDashboardScreen(
     val telemetryMap by viewModel.currentDeviceTelemetry.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // O estado da taxa de atualização fica aqui para alimentar o LaunchedEffect
+    // O estado da taxa de atualização (apenas para atualizar o gráfico, sem chamadas à API)
     var refreshRateMillis by remember { mutableLongStateOf(5000L) }
 
-    // O "Motor" do Dashboard (Ciclo infinito que respeita o Slider)
-    LaunchedEffect(refreshRateMillis) {
-        while(true) {
-            viewModel.fetchDeviceTelemetry(device.id.id)
-            delay(refreshRateMillis)
+    // 🔥 O "Motor V8" do Dashboard: Liga ao entrar, desliga ao sair!
+    DisposableEffect(device.id.id) {
+
+        // 1. A Tela apareceu! Manda o ViewModel ligar o WebSocket!
+        viewModel.fetchDeviceTelemetry(device.id.id)
+
+        // 2. A Tela fechou! (O utilizador clicou no botão "Voltar") -> Corta a ligação!
+        onDispose {
+            viewModel.repository.stopRealTimeTelemetry()
         }
     }
 

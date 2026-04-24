@@ -1,9 +1,5 @@
 package com.ifpe.edu.br.viewmodel
 
-/*
-* Refactored for: AirPower Admin (BFF Integration, Progressive Wizard & Telemetry)
-*/
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Application
@@ -30,10 +26,12 @@ import com.ifpe.edu.br.model.repository.remote.dto.DashboardInfo
 import com.ifpe.edu.br.model.repository.remote.dto.ThingsBoardDevice
 import com.ifpe.edu.br.model.repository.remote.dto.DeviceRegistration
 import com.ifpe.edu.br.model.util.ResultWrapper
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -41,19 +39,13 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.SocketTimeoutException
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.isActive
 import javax.inject.Inject
 
 @HiltViewModel
 class AdminViewModel @Inject constructor(
     application: Application,
-    val repository: AdminRepository, // <--- INJETADO PELO HILT!
-    private val prefs: SharedPrefManager, // <--- INJETADO PELO HILT!
+    val repository: AdminRepository,
+    private val prefs: SharedPrefManager,
 ) : AndroidViewModel(application) {
 
     private val provisioningManager = EspProvisioningManager()
@@ -74,11 +66,9 @@ class AdminViewModel @Inject constructor(
     // MÁQUINA DE ESTADOS: PROGRESSIVE WIZARD (SETUP)
     // ========================================================================
 
-    // Controla a tela atual do Wizard (1 a 6)
     private val _wizardStep = MutableStateFlow(1)
     val wizardStep = _wizardStep.asStateFlow()
 
-    // --- PASSO 1: WI-FI (Smart Scan) ---
     private val _availableNetworks = MutableStateFlow<List<AllowedNetwork>>(emptyList())
     val availableNetworks = _availableNetworks.asStateFlow()
 
@@ -89,17 +79,15 @@ class AdminViewModel @Inject constructor(
     var targetWifiSsid = ""
     var targetWifiPassword = ""
 
-    // --- PASSO 2: LOCALIZAÇÃO E THINGSBOARD ---
     private val _selectedDevice = MutableStateFlow<ThingsBoardDevice?>(null)
     val selectedDevice = _selectedDevice.asStateFlow()
 
     var locationName: String = ""
     var locationLat: Double? = null
     var locationLon: Double? = null
-    var locationDescription: String = "" // A variável rebelde está aqui, bem segura!
+    var locationDescription: String = ""
     var currentToken = ""
 
-    // --- PASSO 4: DESCOBERTA DE ESP32 E LOCK UDP ---
     private val _isSearchingEsps = MutableStateFlow(false)
     val isSearchingEsps = _isSearchingEsps.asStateFlow()
 
@@ -111,11 +99,8 @@ class AdminViewModel @Inject constructor(
     private val UDP_PORT = 8888
 
     var targetEspId = ""
-
-    // 🔒 TRAVA DE CONCORRÊNCIA (Impede que placas vizinhas interfiram no envio)
     private var lockedEspId: String? = null
 
-    // --- PASSO 5 E 6: VALIDAÇÃO, TERMINAL E ENVIO ---
     private val _provisioningStatus = MutableStateFlow("Aguardando...")
     val provisioningStatus = _provisioningStatus.asStateFlow()
 
@@ -124,48 +109,92 @@ class AdminViewModel @Inject constructor(
 
     private val wifiManager = application.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
-    // Estado para a lista de Dashboards
     private val _dashboardsList = MutableStateFlow<List<DashboardInfo>>(emptyList())
     val dashboardsList = _dashboardsList.asStateFlow()
 
     // ========================================================================
-    // ESTADOS E FUNÇÕES DO DASHBOARD NATIVO (Dispositivo Único)
+    // ESTADOS E FUNÇÕES DO DASHBOARD NATIVO (WEBSOCKETS)
     // ========================================================================
 
-    // Guarda a telemetria do dispositivo selecionado para desenhar os Cards
     private val _currentDeviceTelemetry = MutableStateFlow<Map<String, String>>(emptyMap())
     val currentDeviceTelemetry = _currentDeviceTelemetry.asStateFlow()
 
-    // Estado do botão de Power para a UI reagir na hora
     private val _devicePowerState = MutableStateFlow(false)
     val devicePowerState = _devicePowerState.asStateFlow()
 
-    // Em vez de guardar apenas a String atual, guarde uma lista de valores Float
     private val _telemetryHistory = MutableStateFlow<Map<String, List<Float>>>(emptyMap())
     val telemetryHistory = _telemetryHistory.asStateFlow()
 
-    // Limite de pontos no gráfico para não estourar a memória do telemóvel
     private val MAX_HISTORY_POINTS = 20
-
-    // ==========================================
-    // ESTADOS DE FEEDBACK DA UI (UX)
-    // ==========================================
 
     var connectionError by mutableStateOf(false)
         private set
 
     var isPollingActive by mutableStateOf(false)
         private set
-    
 
-    // ==========================================
-    // MÉTODOS DE CONTROLO (RPC) E OTIMISMO
-    // ==========================================
+    init {
+        // 🔥 LIGAÇÃO AO WEBSOCKET (O Observador Passivo)
+        viewModelScope.launch {
+            repository.realTimeTelemetryFlow.collect { jsonString ->
+                handleIncomingTelemetry(jsonString)
+            }
+        }
+    }
 
     /**
-     * Envia um comando RPC para a ESP32 e devolve o sucesso ou falha
-     * para que a Interface Otimista possa reverter o botão em caso de erro.
+     * Esta função processa o texto JSON bruto que o ThingsBoard nos dispara em tempo real.
      */
+    private fun handleIncomingTelemetry(jsonString: String) {
+        try {
+            val root = JSONObject(jsonString)
+            if (!root.has("data")) return // Ignora mensagens de sistema do TB
+
+            val dataObj = root.getJSONObject("data")
+            val currentCardMap = _currentDeviceTelemetry.value.toMutableMap()
+            val currentHistory = _telemetryHistory.value.toMutableMap()
+
+            val keys = dataObj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val valueArray = dataObj.getJSONArray(key)
+
+                if (valueArray.length() > 0) {
+                    // CRÍTICO: ThingsBoard usa Array de Array no WebSocket! Ex: [ [1682390123, "24.5"] ]
+                    val dataPoint = valueArray.getJSONArray(0)
+                    val rawValueString = dataPoint.getString(1) // Índice 0 é tempo, Índice 1 é valor
+                    val rawValueFloat = rawValueString.toFloatOrNull()
+
+                    // Atualiza Estado/Power
+                    if (key.equals("state", true) || key.equals("power", true)) {
+                        _devicePowerState.value = rawValueString == "true" || rawValueString == "1"
+                        currentCardMap["Estado"] = if (_devicePowerState.value) "Ligado" else "Desligado"
+                    } else {
+                        // Formata a primeira letra para maiúscula
+                        val formattedName = key.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                        currentCardMap[formattedName] = rawValueString
+
+                        // Atualiza o Gráfico Animado
+                        if (rawValueFloat != null) {
+                            val pointList = currentHistory[formattedName]?.toMutableList() ?: mutableListOf()
+                            pointList.add(rawValueFloat)
+                            if (pointList.size > MAX_HISTORY_POINTS) pointList.removeAt(0)
+                            currentHistory[formattedName] = pointList
+                        }
+                    }
+                }
+            }
+
+            // Avisa a UI para redesenhar a tela com os novos dados!
+            _currentDeviceTelemetry.value = currentCardMap
+            _telemetryHistory.value = currentHistory
+            connectionError = false
+
+        } catch (e: Exception) {
+            com.ifpe.edu.br.model.util.AirPowerLog.e("ViewModel", "Erro ao processar JSON do TB: ${e.message}")
+        }
+    }
+
     // ==========================================
     // MÉTODOS DE CONTROLE (RPC) E OTIMISMO
     // ==========================================
@@ -173,112 +202,80 @@ class AdminViewModel @Inject constructor(
         return try {
             val result = repository.sendRpcCommand(deviceId, method, params)
             if (result is ResultWrapper.Success) {
-                connectionError = false // ATRIBUIÇÃO DIRETA
+                connectionError = false
                 true
             } else {
-                connectionError = true  // ATRIBUIÇÃO DIRETA
+                connectionError = true
                 false
             }
         } catch (e: Exception) {
-            connectionError = true      // ATRIBUIÇÃO DIRETA
+            connectionError = true
             false
         }
     }
 
-    // Polling contínuo da lista de Devices (Aba Dispositivos)
+    // Mantemos o Polling APENAS para a Lista de Devices (pois isso não gasta muita bateria)
     fun fetchDevicesDataPeriodically() {
         viewModelScope.launch {
             while (isActive) {
-                isPollingActive = true // ATRIBUIÇÃO DIRETA
-
+                isPollingActive = true
                 val response = repository.getTenantDevices()
-
-                isPollingActive = false // ATRIBUIÇÃO DIRETA
+                isPollingActive = false
 
                 if (response is ResultWrapper.Success) {
-                    connectionError = false // ATRIBUIÇÃO DIRETA
+                    connectionError = false
                     _devicesList.value = response.value
                 } else {
-                    connectionError = true // ATRIBUIÇÃO DIRETA
-                    // Mantém a lista anterior intacta se falhar
+                    connectionError = true
                 }
                 delay(5000)
             }
         }
     }
 
-    fun fetchDeviceTelemetry(deviceId: String) {
+    // Quando clica no Dispositivo, INICIA A CONEXÃO WEBSOCKET
+    fun selectDeviceForDashboard(device: ThingsBoardDevice) {
+        _selectedDevice.value = device
+
+        // Em vez do antigo fetchDeviceTelemetry(), ativamos a "magia"!
         viewModelScope.launch {
-            val result = repository.getLatestTelemetry(deviceId, emptyList())
-
-            if (result is ResultWrapper.Success) {
-                try {
-                    val currentCardMap = mutableMapOf<String, String>()
-                    // Pega o histórico atual para podermos adicionar novos pontos
-                    val currentHistory = _telemetryHistory.value.toMutableMap()
-
-                    result.value.forEach { (key, valueList) ->
-                        val rawValueString = valueList.firstOrNull()?.get("value")?.toString()
-                        val rawValueFloat = rawValueString?.toFloatOrNull() // Tenta converter para número
-
-                        if (rawValueString != null) {
-                            // Lógica de UI para a Aba 1 (Cartões) e Aba 2 (Ar Condicionado)
-                            if (key.equals("state", true) || key.equals("power", true)) {
-                                _devicePowerState.value = rawValueString == "true" || rawValueString == "1"
-                                currentCardMap["Estado"] = if (_devicePowerState.value) "Ligado" else "Desligado"
-                            } else {
-                                val formattedName = key.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-                                currentCardMap[formattedName] = rawValueString // Pode aplicar a formatação de °C aqui
-
-                                // === LÓGICA DO GRÁFICO (NOVO) ===
-                                // Se for um número (ex: 24.5), adiciona ao histórico do gráfico!
-                                if (rawValueFloat != null) {
-                                    val pointList = currentHistory[formattedName]?.toMutableList() ?: mutableListOf()
-                                    pointList.add(rawValueFloat)
-                                    // Remove o ponto mais antigo se passar do limite (faz o gráfico "andar")
-                                    if (pointList.size > MAX_HISTORY_POINTS) pointList.removeAt(0)
-
-                                    currentHistory[formattedName] = pointList
-                                }
-                            }
-                        }
-                    }
-                    _currentDeviceTelemetry.value = currentCardMap
-                    _telemetryHistory.value = currentHistory // Atualiza os gráficos!
-
-                } catch (e: Exception) { e.printStackTrace() }
-            }
+            repository.startRealTimeTelemetry(device.id.id)
         }
     }
 
-    // Função chamada pelos botões redondos da nova Interface Nativa
+    // Mantemos o mesmo nome antigo para a Tela do Dashboard não quebrar,
+    // mas agora esta função ativa a magia do WebSocket em tempo real!
+    fun fetchDeviceTelemetry(deviceId: String) {
+        com.ifpe.edu.br.model.util.AirPowerLog.d("ViewModel", "⚠️ A TELA MANDOU LIGAR O WEBSOCKET PARA O ID: $deviceId")
+        viewModelScope.launch {
+            repository.startRealTimeTelemetry(deviceId)
+        }
+    }
+
     fun sendRpcCommand(deviceId: String, method: String, params: Any) {
         viewModelScope.launch {
-            // Otimização de UI (Optimistic UI Update): Muda a cor do botão na hora, sem esperar o servidor
             if (method == "setPower" && params is Boolean) {
                 _devicePowerState.value = params
             }
 
             addProvisioningLog("Enviando RPC: $method -> $params")
-
             val result = repository.sendRpcCommand(deviceId, method, params)
 
             if (result !is ResultWrapper.Success) {
-                // Se der erro, desfaz a animação do botão e avisa o utilizador
                 addProvisioningLog("Erro ao enviar comando para a placa.")
-                // Pode lançar um Toast ou Snackbar aqui
             }
         }
     }
 
-    fun selectDeviceForDashboard(device: ThingsBoardDevice) {
-        _selectedDevice.value = device
-        // Já dispara a busca da temperatura e humidade!
-        fetchDeviceTelemetry(device.id.id)
+    // Mata a conexão se o utilizador fechar a App ou o ViewModel morrer
+    override fun onCleared() {
+        super.onCleared()
+        repository.stopRealTimeTelemetry()
     }
 
+
     // ========================================================================
-    // FUNÇÕES DO WIZARD PROGRESSIVO
+    // FUNÇÕES DO WIZARD PROGRESSIVO (Inalteradas)
     // ========================================================================
 
     fun setWizardStep(step: Int) {
@@ -317,7 +314,6 @@ class AdminViewModel @Inject constructor(
         _provisioningLogs.value = currentLogs
     }
 
-    // --- LÓGICA DE LOCK DA ESP32 (Filtro) ---
     fun lockEsp32(espId: String) {
         lockedEspId = espId
         this.targetEspId = espId
@@ -330,9 +326,6 @@ class AdminViewModel @Inject constructor(
         addProvisioningLog("🔓 Trava UDP libertada.")
     }
 
-    // ========================================================================
-    // PASSO 1: SMART SCAN WI-FI (API + Físico)
-    // ========================================================================
     fun scanForAuthorizedNetworks() {
         viewModelScope.launch {
             _isScanningWifi.value = true
@@ -387,10 +380,6 @@ class AdminViewModel @Inject constructor(
         nextStep()
     }
 
-    // ========================================================================
-    // PASSO 2 E 6: LOCALIZAÇÃO E THINGSBOARD
-    // ========================================================================
-
     @SuppressLint("MissingPermission")
     fun captureLocationInBackground() {
         try {
@@ -418,12 +407,9 @@ class AdminViewModel @Inject constructor(
                 viewModelScope.launch(Dispatchers.IO) {
                     try {
                         addProvisioningLog("📡 A enviar GPS atual para a Cloud...")
-                        val result = repository.saveDeviceLocation(deviceId, locationLat!!, locationLon!!, locationDescription)
-                        if (result is ResultWrapper.Success) {
-                            addProvisioningLog("✅ Localização salva com sucesso na Cloud!")
-                        }
+                        repository.saveDeviceLocation(deviceId, locationLat!!, locationLon!!, locationDescription)
                     } catch (e: Exception) {
-                        addProvisioningLog("⚠️ Aviso: Falha ao enviar localização (sem internet?).")
+                        addProvisioningLog("⚠️ Aviso: Falha ao enviar localização.")
                     }
                 }
             }
@@ -512,9 +498,6 @@ class AdminViewModel @Inject constructor(
         }
     }
 
-    // ========================================================================
-    // PASSO 4: DESCOBERTA UDP (COM TRAVA/LOCK)
-    // ========================================================================
     fun startUdpListener() {
         _isSearchingEsps.value = true
         isListeningUdp = true
@@ -601,9 +584,6 @@ class AdminViewModel @Inject constructor(
         }
     }
 
-    // ========================================================================
-    // PASSO 5: VALIDAÇÃO E ENVIO DO SOCKET (TERMINAL)
-    // ========================================================================
     fun sendConfigurationToEsp() {
         if (currentToken.isEmpty()) {
             addProvisioningLog("❌ Erro fatal: Token TB não gerado.")
@@ -617,10 +597,7 @@ class AdminViewModel @Inject constructor(
 
         addProvisioningLog("🚀 Iniciando provisionamento para ESP: $lockedEspId")
 
-        // 1. Lê a URL que foi salva no Login
         val rawTbUrl = prefs.readString("LOGGED_USER_TB_URL") ?: prefs.proxyBaseUrl
-
-        // 2. Limpa TUDO e deixa só os números do IP!
         val cleanHost = rawTbUrl
             .replace("http://", "")
             .replace("https://", "")
@@ -632,7 +609,7 @@ class AdminViewModel @Inject constructor(
             targetSsid = targetWifiSsid,
             targetPassword = targetWifiPassword,
             deviceToken = currentToken,
-            serverUrl = cleanHost // A ESP32 vai ligar-se à porta 8080 ou 1883 do Proxy
+            serverUrl = cleanHost
         )
 
         viewModelScope.launch {
@@ -652,7 +629,6 @@ class AdminViewModel @Inject constructor(
                     override fun onSuccess() {
                         _provisioningStatus.value = "SUCESSO_SOCKET"
                         addProvisioningLog("✅ PROVISIONAMENTO CONCLUÍDO COM SUCESSO!")
-                        // AQUI NÃO HÁ MAIS CHAMADA DE GPS. A PLACA TOMA CONTA DA VIDA DELA!
                     }
                 }
             )
@@ -663,9 +639,6 @@ class AdminViewModel @Inject constructor(
         provisioningManager.stopServer()
     }
 
-    // ========================================================================
-    // OUTRAS FUNÇÕES GERAIS
-    // ========================================================================
     fun fetchDevices() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -679,7 +652,6 @@ class AdminViewModel @Inject constructor(
         }
     }
 
-    // Vai buscar as coordenadas à Telemetria
     private fun fetchDeviceLocations(devices: List<ThingsBoardDevice>) {
         viewModelScope.launch {
             val locationsMap = mutableMapOf<String, LatLng>()
@@ -687,26 +659,19 @@ class AdminViewModel @Inject constructor(
             for (device in devices) {
                 val deviceId = device.id.id
 
-                // NOTA: Certifique-se de que o seu AdminRepository tem esta função para ler a telemetria!
-                // O nome da função pode variar consoante a forma como a criou no repositório.
                 val telemetryResult = repository.getLatestTelemetry(deviceId, listOf("latitude", "longitude"))
 
                 if (telemetryResult is ResultWrapper.Success) {
                     try {
-                        // 1. Acedemos à lista de cada chave ("latitude" e "longitude")
                         val latList = telemetryResult.value["latitude"]
                         val lngList = telemetryResult.value["longitude"]
 
-                        // 2. Pegamos o primeiro item da lista e usamos ["value"] para ler o conteúdo
-                        // Depois transformamos em String para podermos converter em número.
                         val latStr = latList?.firstOrNull()?.get("value")?.toString()
                         val lngStr = lngList?.firstOrNull()?.get("value")?.toString()
 
-                        // 3. Convertemos para Double de forma 100% segura
                         val lat = latStr?.toDoubleOrNull()
                         val lng = lngStr?.toDoubleOrNull()
 
-                        // 4. Se ambos forem válidos (não nulos), adicionamos ao mapa!
                         if (lat != null && lng != null) {
                             locationsMap[deviceId] = LatLng(lat, lng)
                         }
@@ -716,7 +681,6 @@ class AdminViewModel @Inject constructor(
                 }
             }
 
-            // Atualiza o estado da UI do Mapa de uma só vez!
             _deviceLocations.value = locationsMap
         }
     }
@@ -762,16 +726,13 @@ class AdminViewModel @Inject constructor(
         }
     }
 
-    // Função auxiliar para pegar a URL pura do TB salva no login
     fun getCleanTbUrl(): String {
         val rawTbUrl = prefs.readString("LOGGED_USER_TB_URL") ?: prefs.proxyBaseUrl
         return rawTbUrl.replace("http://", "").replace("https://", "").substringBefore(":").trim()
     }
 
-    // Traz a URL completa e exata para a WebView (Evita o erro de TLS/HTTPS)
     fun getFullTbUrl(): String {
         val rawUrl = prefs.readString("LOGGED_USER_TB_URL") ?: prefs.proxyBaseUrl
-        // Se a url original não tiver http/https explícito, assume http
         return if (!rawUrl.startsWith("http")) "http://$rawUrl" else rawUrl
     }
 }
