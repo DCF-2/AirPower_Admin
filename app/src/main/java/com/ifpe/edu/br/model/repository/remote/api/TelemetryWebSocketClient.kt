@@ -2,7 +2,10 @@ package com.ifpe.edu.br.model.repository.remote.api
 
 import com.ifpe.edu.br.model.util.AirPowerLog
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.*
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -17,7 +20,8 @@ import javax.net.ssl.X509TrustManager
 class TelemetryWebSocketClient @Inject constructor() {
 
     private var webSocket: WebSocket? = null
-    private var isWebSocketOpen = false
+    private val _isConnected = MutableStateFlow(false)
+    val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
     private val _telemetryFlow = MutableSharedFlow<String>(extraBufferCapacity = 10)
     val telemetryFlow = _telemetryFlow.asSharedFlow()
@@ -36,12 +40,12 @@ class TelemetryWebSocketClient @Inject constructor() {
         OkHttpClient.Builder()
             .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
             .hostnameVerifier { _, _ -> true } // Aceita qualquer IP/Hostname
-            .pingInterval(10, TimeUnit.SECONDS) // Baixei o ping para 10s para evitar a queda do Nginx
+            .pingInterval(15, TimeUnit.SECONDS)
             .build()
     }
 
     fun connect(proxyBaseUrl: String, token: String, email: String, onConnected: () -> Unit) {
-        if (webSocket != null && isWebSocketOpen) {
+        if (webSocket != null && _isConnected.value) {
             onConnected()
             return
         }
@@ -62,36 +66,33 @@ class TelemetryWebSocketClient @Inject constructor() {
             .addHeader("X-User-Email", email)
             .build()
 
-        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+        client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                isWebSocketOpen = true
-                AirPowerLog.d("WebSocket", "✅ Conectado à Ponte SpringBoot (Proxy) com sucesso!")
-                onConnected()
+                _isConnected.value = true // 🔥 ATUALIZA PARA LIGADO
+                AirPowerLog.d("WebSocket", "✅ Conectado ao Proxy via OkHttp!")
+                this@TelemetryWebSocketClient.webSocket = webSocket
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
-                if (AirPowerLog.ISVERBOSE) {
-                    AirPowerLog.d("WebSocket", "📥 Telemetria recebida: $text")
-                }
                 _telemetryFlow.tryEmit(text)
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                isWebSocketOpen = false
-                AirPowerLog.e("WebSocket", "❌ Falha na conexão WebSocket: ${t.message} - Code: ${response?.code}")
+                _isConnected.value = false // 🔥 ATUALIZA PARA DESLIGADO
+                AirPowerLog.e("WebSocket", "❌ Falha na conexão: ${t.message}")
                 this@TelemetryWebSocketClient.webSocket = null
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                isWebSocketOpen = false
-                AirPowerLog.d("WebSocket", "🔌 Conexão WebSocket encerrada: $reason")
+                _isConnected.value = false // 🔥 ATUALIZA PARA DESLIGADO
+                AirPowerLog.d("WebSocket", "🔌 Conexão encerrada: $reason")
                 this@TelemetryWebSocketClient.webSocket = null
             }
         })
     }
 
     fun subscribeToDevice(deviceId: String) {
-        if (isWebSocketOpen) {
+        if (_isConnected.value) {
             val subscribeCmd = """
                 {
                   "tsSubCmds": [
@@ -115,6 +116,6 @@ class TelemetryWebSocketClient @Inject constructor() {
     fun disconnect() {
         webSocket?.close(1000, "Desconectado voluntariamente.")
         webSocket = null
-        isWebSocketOpen = false
+        _isConnected.value = false
     }
 }

@@ -34,37 +34,77 @@ import com.patrykandpatrick.vico.compose.chart.line.lineSpec
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import kotlinx.coroutines.launch
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.material.icons.filled.Warning
 
+@Composable
+fun ConnectionBanner(isConnected: Boolean) {
+    AnimatedVisibility(
+        visible = !isConnected,
+        enter = expandVertically(),
+        exit = shrinkVertically()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.errorContainer)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = "Aviso",
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Sem conexão com o servidor. A aguardar dados...",
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
 @Composable
 fun DeviceDashboardScreen(
     device: ThingsBoardDevice,
     viewModel: AdminViewModel,
     onBack: () -> Unit
 ) {
-    // Agora temos 3 abas! (0 = Painel, 1 = Controle, 2 = Análise)
-    var selectedTab by remember { mutableStateOf(0) }
-    val theme = MaterialTheme.colorScheme
-
+    // 🔥 Escutamos o estado do WebSocket e Telemetria
+    val isConnected by viewModel.isWebSocketConnected.collectAsState()
     val telemetryMap by viewModel.currentDeviceTelemetry.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // O estado da taxa de atualização (apenas para atualizar o gráfico, sem chamadas à API)
+    // 🔥 Removido o 'val dashboards' que não estava a ser usado!
+
+    var selectedTab by remember { mutableStateOf(0) }
+    val theme = MaterialTheme.colorScheme
     var refreshRateMillis by remember { mutableLongStateOf(5000L) }
 
-    // 🔥 O "Motor V8" do Dashboard: Liga ao entrar, desliga ao sair!
+    // O "Motor V8" do Dashboard
     DisposableEffect(device.id.id) {
-
-        // 1. A Tela apareceu! Manda o ViewModel ligar o WebSocket!
         viewModel.fetchDeviceTelemetry(device.id.id)
-
-        // 2. A Tela fechou! (O utilizador clicou no botão "Voltar") -> Corta a ligação!
         onDispose {
             viewModel.repository.stopRealTimeTelemetry()
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(theme.background)) {
-        // --- HEADER ---
+    // 🔥 APENAS UMA COLUNA MESTRA PARA O ECRÃ TODO!
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(theme.background)
+    ) {
+        // 1. O BANNER BEM NO TOPO (Agora ele vai empurrar o resto para baixo livremente)
+        ConnectionBanner(isConnected = isConnected)
+
+        // 2. HEADER
         Surface(color = theme.surface, shadowElevation = 4.dp) {
             Column {
                 Row(
@@ -78,7 +118,6 @@ fun DeviceDashboardScreen(
                     }
                 }
 
-                // --- ABAS (TABS) ---
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Painel") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Controle") })
@@ -87,7 +126,7 @@ fun DeviceDashboardScreen(
             }
         }
 
-        // --- CONTEÚDO DAS ABAS ---
+        // 3. CONTEÚDO DAS ABAS
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             if (isLoading && telemetryMap.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -100,7 +139,7 @@ fun DeviceDashboardScreen(
                     2 -> TelemetryChartsTab(
                         viewModel = viewModel,
                         refreshRate = refreshRateMillis,
-                        onRefreshRateChange = { refreshRateMillis = it }
+                        onRefreshRateChange = { novoValor: Long -> refreshRateMillis = novoValor }
                     )
                 }
             }
