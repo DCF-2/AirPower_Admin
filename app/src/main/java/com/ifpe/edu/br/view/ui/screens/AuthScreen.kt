@@ -178,6 +178,7 @@ fun AuthScreen(
 
                                 isLoading = false
                                 if (result is ResultWrapper.Success<*>) {
+                                    SharedPrefManager.getInstance(componentActivity).writeString("LOGGED_USER_EMAIL", email)
                                     navController.popBackStack()
                                     AirPowerUtil.launchActivity(componentActivity, com.ifpe.edu.br.view.AdminActivity::class.java)
                                     componentActivity.finish()

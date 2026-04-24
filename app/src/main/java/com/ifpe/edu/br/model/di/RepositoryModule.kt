@@ -5,6 +5,7 @@ import com.ifpe.edu.br.model.repository.AdminRepository
 import com.ifpe.edu.br.model.repository.persistence.dao.TokenDao
 import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.repository.remote.api.AdminServerManager
+import com.ifpe.edu.br.model.repository.remote.api.TelemetryWebSocketClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,7 +23,8 @@ object RepositoryModule {
         @ApplicationContext context: Context,
         adminServerManager: AdminServerManager, // O Hilt puxa isso do NetworkModule
         tokenDao: TokenDao,                     // O Hilt puxa isso do DatabaseModule
-        sharedPrefManager: SharedPrefManager    // O Hilt puxa isso do DatabaseModule
+        sharedPrefManager: SharedPrefManager,    // O Hilt puxa isso do DatabaseModule
+        webSocketClient: TelemetryWebSocketClient
     ): AdminRepository {
 
         // Constrói o repositório com tudo injetado em cascata!
@@ -30,7 +32,8 @@ object RepositoryModule {
             context = context,
             adminServerManager = adminServerManager,
             tokenDao = tokenDao,
-            prefs = sharedPrefManager
+            prefs = sharedPrefManager,
+            webSocketClient = webSocketClient
         )
     }
 }

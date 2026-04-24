@@ -9,17 +9,20 @@ import com.ifpe.edu.br.model.repository.persistence.manager.SharedPrefManager
 import com.ifpe.edu.br.model.repository.persistence.model.AirPowerToken
 import com.ifpe.edu.br.model.repository.remote.api.AdminServerManager
 import com.ifpe.edu.br.model.repository.remote.api.LocationPayload
+import com.ifpe.edu.br.model.repository.remote.api.TelemetryWebSocketClient
 import com.ifpe.edu.br.model.repository.remote.dto.*
 import com.ifpe.edu.br.model.repository.remote.dto.auth.*
 import com.ifpe.edu.br.model.util.ResultWrapper
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class AdminRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val adminServerManager: AdminServerManager,
     private val tokenDao: TokenDao,
-    private val prefs: SharedPrefManager
+    private val prefs: SharedPrefManager,
+    private val webSocketClient: TelemetryWebSocketClient
 ) {
 
     // ==========================================
@@ -195,6 +198,33 @@ class AdminRepository @Inject constructor(
             e.printStackTrace()
             ResultWrapper.NetworkError
         }
+    }
+
+    val realTimeTelemetryFlow = webSocketClient.telemetryFlow
+
+    suspend fun startRealTimeTelemetry(deviceId: String) {
+        com.ifpe.edu.br.model.util.AirPowerLog.d("WebSocket", "A preparar para iniciar telemetria do Device: $deviceId")
+
+        val token = getToken() ?: return
+        val email = prefs.readString("LOGGED_USER_EMAIL") ?: return
+        val proxyUrl = prefs.proxyBaseUrl ?: return
+
+        // 1. Inicia a ligação ao Proxy
+        webSocketClient.connect(proxyUrl, token, email) {
+            com.ifpe.edu.br.model.util.AirPowerLog.d("WebSocket", "Proxy ligado! A aguardar a ponte do ThingsBoard...")
+
+            // 🚨 A SOLUÇÃO DA RACE CONDITION 🚨
+            // Lançamos uma coroutine rápida para aguardar 1.5 segundos.
+            // Isto dá tempo suficiente para o Spring Boot ligar-se em segurança ao ThingsBoard!
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                kotlinx.coroutines.delay(1500)
+                webSocketClient.subscribeToDevice(deviceId)
+            }
+        }
+    }
+
+    fun stopRealTimeTelemetry() {
+        webSocketClient.disconnect()
     }
 
     // ==========================================
