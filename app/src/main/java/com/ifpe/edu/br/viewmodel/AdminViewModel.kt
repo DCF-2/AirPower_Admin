@@ -133,6 +133,8 @@ class AdminViewModel @Inject constructor(
     var isPollingActive by mutableStateOf(false)
         private set
 
+    val isWebSocketConnected = repository.isWebSocketConnected
+
     init {
         // 🔥 LIGAÇÃO AO WEBSOCKET (O Observador Passivo)
         viewModelScope.launch {

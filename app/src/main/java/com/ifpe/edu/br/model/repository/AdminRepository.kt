@@ -201,6 +201,7 @@ class AdminRepository @Inject constructor(
     }
 
     val realTimeTelemetryFlow = webSocketClient.telemetryFlow
+    val isWebSocketConnected = webSocketClient.isConnected
 
     suspend fun startRealTimeTelemetry(deviceId: String) {
         com.ifpe.edu.br.model.util.AirPowerLog.d("WebSocket", "A preparar para iniciar telemetria do Device: $deviceId")
